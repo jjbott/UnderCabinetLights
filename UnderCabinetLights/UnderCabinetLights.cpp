@@ -1,8 +1,17 @@
+#include "application.h"
+#include "stdarg.h"
+
+PRODUCT_ID(PLATFORM_ID);
+PRODUCT_VERSION(2);
+
+#include "errno.h"
+
 #include "neopixel.h"
+#include "Config.h"
 
 /* ======================= prototypes =============================== */
 
-void colorAll(Adafruit_NeoPixel &strip, uint32_t c, uint8_t wait);
+void colorAll(uint32_t c);
 void rainbowCycle(Adafruit_NeoPixel &strip, uint8_t wait);
 uint32_t Wheel(byte WheelPos);
 
@@ -95,7 +104,7 @@ bool stringToInt(const char* str, int& result)
 	result = 0;
 	char* end;
 	long r = strtol(str, &end, 10);
-	if ( end > str && (end-str) == strlen(str) && errno != ERANGE && r <= INT_MAX && r >= INT_MIN)
+	if ( end > str && (uint)(end-str) == strlen(str) && errno != ERANGE && r <= INT_MAX && r >= INT_MIN)
 	{
 		result = r;
 		return true;
@@ -224,7 +233,7 @@ void setup() {
   strip1.begin();
   strip2.begin();
 
-  debug("Version: %08x", System.versionNumber());
+  //debug("Version: %08x", System.versionNumber());
   colorAll(strip1.Color(0,0,0));
   colorAll(strip2.Color(0,0,0));
 
@@ -338,8 +347,8 @@ ulong statusUpdateTriggerMillis = 0;
 ulong lastLoopCounterPublish = 0;
 ulong loopCounter = 0;
 
-const uint8_t FPS = 60;
-const ulong MICROS_PER_FRAME = 1000000 / FPS;
+
+const ulong MICROS_PER_FRAME = 1000000 / Config::FPS;
 ulong frame = 0;
 
 ulong lastFrameTime = 0;
@@ -386,7 +395,7 @@ void nextFrame()
 {
   ++frame;
   for(int i=0; i<(strip1.numPixels() + strip2.numPixels()); i++) {
-    setColor(i, reverseRainbowCycle(i));
+    setColor(i, rainbowCycle(i));
 /*
     if ( i/10 % 2 == 0)
     {
@@ -450,7 +459,7 @@ bool segmentToIndex(int segment, int& index, int& count)
 }
 
 const uint32_t stripCycleDurationMs = 10000;
-const uint32_t stripCycleDurationFrames = stripCycleDurationMs * FPS / 1000;
+const uint32_t stripCycleDurationFrames = stripCycleDurationMs * Config::FPS / 1000;
 
 int stripCycleTestCycle()
 {
@@ -480,6 +489,7 @@ uint32_t stripCycleTest(int i)
     return strip1.Color(255,255,255);
   }
 
+  return 0; // Cant ever get here, but compiler gives warning otherwise
 }
 
 void stripCycleTest()
@@ -518,7 +528,7 @@ void stripCycleTest()
 }
 
 const uint32_t cycleDurationMs = 2000;
-const uint32_t cycleDurationFrames = cycleDurationMs * FPS / 1000;
+const uint32_t cycleDurationFrames = cycleDurationMs * Config::FPS / 1000;
 
 uint16_t rainbowCycleStep()
 {
@@ -565,7 +575,7 @@ uint32_t Wheel(byte WheelPos) {
 }
 
 uint32_t sparkleDecayDurationMs = 1000;
-uint32_t sparkleDurationFrames = sparkleDecayDurationMs * FPS / 1000;
+uint32_t sparkleDurationFrames = sparkleDecayDurationMs * Config::FPS / 1000;
 uint32_t sparkleDecayPerFrame = 256 / sparkleDurationFrames;
 uint8_t sparkleMinHue = 0;
 uint8_t sparkleMaxHue = 80;
