@@ -1,5 +1,9 @@
 #include "application.h"
 #include "stdarg.h"
+#include <vector>
+#include <map>
+#include <memory>
+#include <sstream>
 
 PRODUCT_ID(PLATFORM_ID);
 PRODUCT_VERSION(2);
@@ -8,12 +12,30 @@ PRODUCT_VERSION(2);
 
 #include "neopixel.h"
 #include "Config.h"
+#include "Rainbow.h"
+#include "StaticColor.h"
+#include "Sparkle.h"
+#include "Clock.h"
+#include "PixelBuffer.h"
+#include "Color.h"
 
 /* ======================= prototypes =============================== */
 
-void colorAll(uint32_t c);
-void rainbowCycle(Adafruit_NeoPixel &strip, uint8_t wait);
-uint32_t Wheel(byte WheelPos);
+//void colorAll(uint32_t c);
+//void rainbowCycle(Adafruit_NeoPixel &strip, uint8_t wait);
+//uint32_t Wheel(byte WheelPos);
+
+ulong statusUpdateTriggerMillis = 0;
+ulong lastLoopCounterPublish = 0;
+ulong loopCounter = 0;
+
+
+const ulong MICROS_PER_FRAME = 1000000 / Config::FPS;
+ulong frame = 0;
+
+ulong lastFrameTime = 0;
+
+void nextFrame();
 
 /* ======================= extra-examples.cpp ======================== */
 
@@ -21,57 +43,22 @@ STARTUP(WiFi.selectAntenna(ANT_EXTERNAL));
 
 SYSTEM_MODE(AUTOMATIC);
 
-// IMPORTANT: Set pixel COUNT, PIN and TYPE
-#define PIXEL_COUNT 43
-#define PIXEL_PIN D6
-#define PIXEL_TYPE WS2812B2
 
-#define PIXEL_COUNT_STRIP2 226
-#define PIXEL_PIN_STRIP2 D5
-
-// Parameter 1 = number of pixels in strip
-//               note: for some stripes like those with the TM1829, you
-//                     need to count the number of segments, i.e. the
-//                     number of controllers in your stripe, not the number
-//                     of individual LEDs!
-// Parameter 2 = pin number (most are valid)
-//               note: if not specified, D2 is selected for you.
-// Parameter 3 = pixel type [ WS2812, WS2812B, WS2812B2, WS2811,
-//                             TM1803, TM1829, SK6812RGBW ]
-//               note: if not specified, WS2812B is selected for you.
-//               note: RGB order is automatically applied to WS2811,
-//                     WS2812/WS2812B/WS2812B2/TM1803 is GRB order.
-//
-// 800 KHz bitstream 800 KHz bitstream (most NeoPixel products
-//               WS2812 (6-pin part)/WS2812B (4-pin part)/SK6812RGBW (RGB+W) )
-//
-// 400 KHz bitstream (classic 'v1' (not v2) FLORA pixels, WS2811 drivers)
-//                   (Radio Shack Tri-Color LED Strip - TM1803 driver
-//                    NOTE: RS Tri-Color LED's are grouped in sets of 3)
-
-// LEDs per segment
-// 53
-// 86
-// 29
-// 28
-// 30
-// 43
-
-Adafruit_NeoPixel strip1 = Adafruit_NeoPixel(PIXEL_COUNT, PIXEL_PIN, PIXEL_TYPE);
-Adafruit_NeoPixel strip2 = Adafruit_NeoPixel(PIXEL_COUNT_STRIP2, PIXEL_PIN_STRIP2, PIXEL_TYPE);
+PixelBuffer pixelBuffer;
+std::vector<std::unique_ptr<Animation>> animations;
 
 uint32_t getColor(int index);
 uint32_t rainbowCycle(int i);
 uint32_t stripCycleTest(int i);
 void rainbowCycle();
-
+/*
 bool triggerEveryXMillis(ulong x, unsigned long &lastTriggeredMillis);
 bool triggerEveryXMicros(ulong x, unsigned long &lastTriggeredMicros);
+*/
 
 
-bool dirty = false;
-IPAddress remoteIP(192, 168, 1, 20);
-int port = 4040;
+//bool dirty = false;
+
 
 // IMPORTANT: To reduce NeoPixel burnout risk, add 1000 uF capacitor across
 // pixel power leads, add 300 - 500 Ohm resistor on first pixel's data input
@@ -82,7 +69,7 @@ enum Mode
 {
     Off = 0,
     Normal = 1,
-    Rainbow = 2,
+    Rainbow1 = 2,
     StripCycleTest = 3
 };
 
@@ -153,38 +140,7 @@ uint32_t hsvToColor(uint16_t h /* 0 - 359 */, uint8_t s /* 0 - 255 */, uint8_t v
 int mode = 0;
 int analogvalue;
 int litSegment = -1;
-
-bool dirtyPublished = false;
-ulong lastPublish = 0;
-void publishLightStatus()
-{
-  if ( !dirtyPublished || dirty)
-  {
-    dirtyPublished = false;
-    if ( triggerEveryXMillis(100, lastPublish) )
-    {
-      int count = strip1.numPixels() + strip2.numPixels();
-      //uint32_t colors[count];
-
-      byte buffer[1 + (count * 3)];
-      buffer[0] = 's';
-
-      for(int i = 0; i < count; ++i)
-      {
-        uint32_t color = getColor(i);
-        buffer[1+ (i*3)] = (char)(color >> 16);
-        buffer[1+ (i*3)+1] = (char)(color >> 8);
-        buffer[1+ (i*3)+2] = (char)color;
-      }
-
-      UDP Udp;
-      Udp.begin(123);
-      Udp.sendPacket(buffer, sizeof(buffer), remoteIP, port);
-      dirtyPublished = true;
-    }
-  }
-}
-
+/*
 void initMode()
 {
   switch((Mode)mode)
@@ -200,26 +156,125 @@ void initMode()
           break;
   }
 }
+*/
+
+void publishModes()
+{
+  std::ostringstream ss;
+  ss << "m[";
+
+  bool first = true;
+  for (auto &anim : animations) {
+      if ( !first )
+      {
+        ss << ",";
+      }
+      first = false;
+
+      //ss << "\"" << anim->GetDescription() << "\"";
+      ss << anim->GetDescription();
+  }
+  ss << "]";
+
+  std::string str = ss.str();
+  UDP Udp;
+  Udp.begin(123);
+  Udp.sendPacket(str.c_str(), str.length(), Config::PublishToIp, Config::PublishToPort);
+}
+
+std::vector<std::string> splitString(std::string str, String delimiter)
+{
+  std::vector<std::string> result;
+  size_t pos = 0;
+  std::string token;
+  while ((pos = str.find(delimiter)) != std::string::npos) {
+      token = str.substr(0, pos);
+      debug("token: %s", token.c_str());
+      result.push_back(token);
+      str.erase(0, pos + delimiter.length());
+  }
+  result.push_back(str);
+  return result;
+}
+
+std::map<std::string, std::string> parseModeString(std::string modeString)
+{
+  std::map<std::string, std::string> result;
+  // modeString will be formatting like a query string
+  std::vector<std::string> keyValues = splitString(modeString, ":");
+
+  for (const std::string& s : keyValues)
+  {
+    debug("keyvalue: %s", s.c_str());
+    std::vector<std::string> keyValue = splitString(s, "=");
+    if ( keyValue.size() != 2)
+    {
+      // bad data somewhere, wipe everything
+      result.clear();
+      return result;
+    }
+
+    result[keyValue[0]] = keyValue[1];
+  }
+
+  return result;
+}
 
 int setMode(String mode)
 {
+  std::map<std::string,std::string> keyValues = parseModeString(std::string(mode));
+
+  debug("new mode string: %s", mode.c_str());
+  debug("new mode len: %d", mode.length());
+  debug("%d %d %d %d", keyValues.size(), keyValues.count("mode"), keyValues.count("start"), keyValues.count("end"));
+
+  int start;
+  int end;
+  if ( keyValues.size() > 0
+    && keyValues.count("mode") > 0
+    && keyValues.count("start") > 0
+    && keyValues.count("end") > 0
+    && stringToInt(keyValues["start"].c_str(), start)
+    && stringToInt(keyValues["end"].c_str(), end))
+  {
+    debug("%s %d %d", keyValues["mode"].c_str(), start, end);
+      auto newMode = keyValues["mode"];
+      if ( newMode == "rainbow")
+      {
+        int duration;
+        int width;
+        if ( keyValues.count("duration") > 0
+          && keyValues.count("width") > 0
+          && stringToInt(keyValues["duration"].c_str(), duration)
+          && stringToInt(keyValues["width"].c_str(), width))
+        {
+          animations.push_back(std::unique_ptr<Animation>(new Rainbow(frame, start, end, duration, width)));
+          return 0;
+        }
+      }
+  }
+
+  return -1;
+
+/*
     int newMode;
     if ( stringToInt(mode.c_str(), newMode) )
     {
       ::mode = newMode;
-      initMode();
+      //initMode();
 
       char buffer[2];
       buffer[0] = 'm';
       buffer[1] = (char)::mode;
       UDP Udp;
       Udp.begin(123);
-      Udp.sendPacket(buffer, 2, remoteIP, port);
+      Udp.sendPacket(buffer, 2, Config::PublishToIp, Config::PublishToPort);
 
 
       return 0;
     }
     return -1;
+    */
 }
 
 void setup() {
@@ -230,140 +285,47 @@ void setup() {
     Particle.variable("analogvalue", &analogvalue, INT);
     Particle.variable("mode", &mode, INT);
     Particle.function("setMode", setMode);
-  strip1.begin();
-  strip2.begin();
+  //strip1.begin();
+  //strip2.begin();
 
   //debug("Version: %08x", System.versionNumber());
-  colorAll(strip1.Color(0,0,0));
-  colorAll(strip2.Color(0,0,0));
+  //colorAll(strip1.Color(0,0,0));
+  //colorAll(strip2.Color(0,0,0));
 
-  strip1.show();
-  strip2.show();
+  //strip1.show();
+  //strip2.show();
 
-}
+  int16_t h;
+  uint8_t s;
+  uint8_t v;
+  Color::ColorToHsv(Adafruit_NeoPixel::Color(255,0,0), h, s, v);
 
-unsigned long elapsedMillis(unsigned long now, unsigned long since)
-{
-  unsigned long elapsed = now - since;
-  if ( now < since )
-  {
-    // time overflowed, fixed elapsed time
-    elapsed = (ULONG_MAX - since) + now;
-  }
+  debug("%d %d %d", (int)h, (int)s, (int)v);
 
-  return elapsed;
-}
+  uint32_t color = Color::HsvToColor(h, 255, v);
+  debug("%d %d %d", (uint8_t)(color>>16), (uint8_t)(color>>8), (uint8_t)(color));
 
-unsigned long elapsedMicros(unsigned long now, unsigned long since)
-{
-  const ulong MAX_MICROS = ULONG_MAX; //35791394;
-  unsigned long elapsed = now - since;
-  if ( now < since )
-  {
-    // time overflowed, fixed elapsed time
-    elapsed = (MAX_MICROS - since) + now;
-  }
+  //animations.push_back(std::unique_ptr<Animation>(new Sparkle(Adafruit_NeoPixel::Color(255,0,0) , 360, 1, 1000, 0, PIXEL_COUNT - 1)));
+  animations.push_back(std::unique_ptr<Animation>(new Rainbow(frame, 0, 50, 500, 10)));
+  animations.push_back(std::unique_ptr<Animation>(new Rainbow(frame, 50, 150, 1500, 30)));
+  animations.push_back(std::unique_ptr<Animation>(new StaticColor(255, 150, 200)));
+  animations.push_back(std::unique_ptr<Animation>(new Sparkle(Adafruit_NeoPixel::Color(255,0,0) , 20, 1, 1000, 200, PIXEL_COUNT - 1)));
+  animations.push_back(std::unique_ptr<Animation>(new Sparkle(Adafruit_NeoPixel::Color(0,255,0) , 40, 1, 2000, 25, 75)));
 
-  return elapsed;
-}
-
-ulong lastMillis = 0;
-ulong lastMicros = 0;
-ulong lastCycleCount = 0;
-
-bool triggerEveryXMillis(ulong x, unsigned long &lastTriggeredMillis)
-{
-  return triggerEveryXMicros(x * 1000, lastTriggeredMillis);
-
-  //ulong now = millis();
-  //ulong elapsed = elapsedMillis(now, lastTriggeredMillis);
-  ulong now = DWT->CYCCNT / SYSTEM_US_TICKS; // micros();
-  ulong elapsed = elapsedMicros(now, lastTriggeredMillis) / 1000;
-  if ( elapsed > x )
-  {
-    /*
-    ulong startMillis = millis();
-    ulong startMicros = micros();
-    ulong startCycleCount = DWT->CYCCNT;
-    debug("%s, %lu, %lu, %lu", Time.timeStr().c_str(), startMillis - lastMillis, startMicros - lastMicros, (startCycleCount - lastCycleCount)/SYSTEM_US_TICKS);
-    lastMillis = startMillis;
-    lastMicros = startMicros;
-    lastCycleCount = startCycleCount;
-*/
-    //debug("%s %lu %lu", Time.timeStr().c_str(),millis(),micros());
-    //debug("now: %lu, then %lu, rawdiff %lu, diff %lu, x %l", now, lastTriggeredMillis, elapsedMicros(now, lastTriggeredMillis), elapsed, x);
-    lastTriggeredMillis = now;
-    return true;
-  }
-  return false;
-}
-
-bool triggerEveryXMicros(ulong x, ulong &lastTriggeredMicros)
-{
-  ulong now = DWT->CYCCNT / SYSTEM_US_TICKS;
-  ulong elapsed = elapsedMicros(now, lastTriggeredMicros);
-  if ( elapsed > x )
-  {
-    /*
-    if ( elapsed %100 == 0)
-    {
-      debug("%lu, %lu, %lu, %lu", x, now - lastTriggeredMicros, now, lastTriggeredMicros);
-    }
-    */
-    lastTriggeredMicros = now;
-    return true;
-  }
-  return false;
-}
-
-uint32_t getColor(int index)
-{
-    if ( index < strip2.numPixels() )
-    {
-        return strip2.getPixelColor(strip2.numPixels() - index - 1);
-    }
-    else
-    {
-        return strip1.getPixelColor(index - strip2.numPixels());
-    }
-}
-
-void setColor(int index, uint32_t color)
-{
-  dirty = true;
-    if ( index < strip2.numPixels() )
-    {
-        strip2.setPixelColor(strip2.numPixels() - index - 1, color);
-    }
-    else
-    {
-        strip1.setPixelColor(index - strip2.numPixels(), color);
-    }
+  publishModes();
 }
 
 
-
-ulong statusUpdateTriggerMillis = 0;
-ulong lastLoopCounterPublish = 0;
-ulong loopCounter = 0;
-
-
-const ulong MICROS_PER_FRAME = 1000000 / Config::FPS;
-ulong frame = 0;
-
-ulong lastFrameTime = 0;
-
-void nextFrame();
 
 void loop() {
-  dirty = false;
+  //dirty = false;
   loopCounter++;
 
-  if ( triggerEveryXMicros(MICROS_PER_FRAME, lastFrameTime) )
+  if ( Clock::TriggerEveryXMicros(MICROS_PER_FRAME, lastFrameTime) )
   {
       nextFrame();
-      strip1.show();
-      strip2.show();
+      //strip1.show();
+      //strip2.show();
   }
   /*
     switch((Mode)mode)
@@ -380,22 +342,47 @@ void loop() {
     */
 
 
-    publishLightStatus();
+    //publishLightStatus();
 
-
-    if ( triggerEveryXMillis(1000, lastLoopCounterPublish))
+/*
+    if ( Clock::TriggerEveryXMillis(1000, lastLoopCounterPublish))
     {
       debug("Loop counter: %lu, frame: %lu", loopCounter, frame);
       loopCounter = 0;
     }
-
+*/
 }
 
 void nextFrame()
 {
   ++frame;
-  for(int i=0; i<(strip1.numPixels() + strip2.numPixels()); i++) {
-    setColor(i, rainbowCycle(i));
+
+  // Remove modes that didnt render anything
+  bool modeChanged = false;
+  for(int i = animations.size() - 1; i >= 0; --i)
+  {
+    animations[i]->Render(frame, pixelBuffer);
+
+    if ( animations[i]->IsObsolete() )
+    {
+      animations.erase(animations.begin() + i);
+      modeChanged = true;
+    }
+  }
+  pixelBuffer.Show();
+
+  if ( modeChanged )
+  {
+    publishModes();
+  }
+
+  if ( Clock::TriggerEveryXMillis(1000, lastLoopCounterPublish))
+  {
+    publishModes();
+  }
+//  for(int i=0; i< PIXEL_COUNT; i++) {
+//    setColor(i, rainbowCycle(i));
+
 /*
     if ( i/10 % 2 == 0)
     {
@@ -406,16 +393,18 @@ void nextFrame()
       setColor(i, sparkle(i));
     }
 */
-  }
+//  }
 }
 
 // Set all pixels in the strip to a solid color, then wait (ms)
+/*
 void colorAll(uint32_t c) {
   uint16_t i;
   for(i=0; i<(strip1.numPixels() + strip2.numPixels()); i++) {
     setColor(i, c);
   }
 }
+*/
 
 /*
 // Fill the dots one after the other with a color, wait (ms) after each one
@@ -439,6 +428,8 @@ void rainbow(Adafruit_NeoPixel &strip, uint8_t wait) {
   }
 }
 */
+
+/*
 
 bool segmentToIndex(int segment, int& index, int& count)
 {
@@ -543,10 +534,7 @@ uint32_t reverseRainbowCycle(int i)
 
 uint32_t rainbowCycle(int i) {
   int pixelCount = strip1.numPixels() + strip2.numPixels();
-  /*if ( i == 0 )
-  {
-    debug("%lu %s %s", frame, String(rainbowCycleStep()).c_str(), String((i * 360 / pixelCount) + rainbowCycleStep()).c_str());
-  }*/
+
   return hsvToColor((i * 360 / pixelCount) + rainbowCycleStep(), 255,255);
   //return Wheel(((i * 256 / pixelCount) + rainbowCycleStep() ));
 }
@@ -602,3 +590,4 @@ uint32_t sparkle(int i)
       return color;
   }
 }
+*/

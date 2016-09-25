@@ -10,10 +10,10 @@ Animation::Animation(int start, int end)
 bool Animation::IsObsolete()
 {
   // I'll mess up _start and _end when a Render cycle doesnt actually render anything
-  return _start <= _end;
+  return _start > _end;
 }
 
-void Animation::Render(uint32_t frame, PixelBuffer &pb)
+void Animation::Render(ulong frame, PixelBuffer &pb)
 {
   int i = _start;
   while(pb.IsPixelDirty(i))

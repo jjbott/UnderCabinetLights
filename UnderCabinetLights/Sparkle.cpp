@@ -9,7 +9,7 @@ Sparkle::Sparkle(uint32_t baseColor, int hueVariance, float newSparklePercent, i
     _baseColor = baseColor;
     _hueVariance = hueVariance;
     _newSparklePercent = newSparklePercent;
-
+    _sparkleDurationMs = sparkleDurationMs;
     // This will lose a lot of precision, and the result may be that the duration ends up no where near sparkleDuration.
     // But in the normal case it will be close enough
     _valueDecayPerFrame = 256 / (sparkleDurationMs * Config::FPS / 1000);
@@ -19,7 +19,7 @@ Sparkle::Sparkle(uint32_t baseColor, int hueVariance, float newSparklePercent, i
     }
 }
 
-uint32_t Sparkle::GenerateColor(int frame, int i, const PixelBuffer &pb)
+uint32_t Sparkle::GenerateColor(ulong frame, int i, const PixelBuffer &pb)
 {
   if ( (100 * ((double) rand() / (RAND_MAX))) < _newSparklePercent )
   {
@@ -46,4 +46,11 @@ uint32_t Sparkle::GenerateColor(int frame, int i, const PixelBuffer &pb)
     }
     return color;
   }
+}
+
+String Sparkle::GetDescription()
+{
+  char buffer[100];
+  snprintf(buffer, 100, "Sparkle: Base Color #%06X, Variance %d, Percent %f%%, Duration %dms, Start %d, End %d", _baseColor, (int)_hueVariance, _newSparklePercent, (int)_sparkleDurationMs, (int)_start, (int)_end);
+  return String(buffer);
 }

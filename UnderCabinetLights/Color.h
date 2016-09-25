@@ -1,4 +1,5 @@
 #include "neopixel.h"
+#pragma once
 
 class Color
 {
@@ -65,7 +66,7 @@ class Color
 
         if( max > 0 )
         {
-          s = (delta / max);
+          s = 255 * (delta / max);
         }
         else
         {
