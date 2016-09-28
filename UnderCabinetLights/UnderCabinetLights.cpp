@@ -86,11 +86,11 @@ void debug(String format, ...) {
     Particle.publish("DEBUG", msg);
 }
 
-bool stringToInt(const char* str, int& result)
+bool stringToInt(const char* str, int base, int& result)
 {
 	result = 0;
 	char* end;
-	long r = strtol(str, &end, 10);
+	long r = strtol(str, &end, base);
 	if ( end > str && (uint)(end-str) == strlen(str) && errno != ERANGE && r <= INT_MAX && r >= INT_MIN)
 	{
 		result = r;
@@ -98,6 +98,11 @@ bool stringToInt(const char* str, int& result)
 	}
 
 	return false;
+}
+
+bool stringToInt(const char* str, int& result)
+{
+  return stringToInt(str, 10, result);
 }
 
 uint32_t hsvToColor(uint16_t h /* 0 - 359 */, uint8_t s /* 0 - 255 */, uint8_t v /* 0 - 255 */)
@@ -138,7 +143,7 @@ uint32_t hsvToColor(uint16_t h /* 0 - 359 */, uint8_t s /* 0 - 255 */, uint8_t v
 }
 
 int mode = 0;
-int analogvalue;
+int lightLevel;
 int litSegment = -1;
 /*
 void initMode()
@@ -189,7 +194,6 @@ std::vector<std::string> splitString(std::string str, String delimiter)
   std::string token;
   while ((pos = str.find(delimiter)) != std::string::npos) {
       token = str.substr(0, pos);
-      debug("token: %s", token.c_str());
       result.push_back(token);
       str.erase(0, pos + delimiter.length());
   }
@@ -200,12 +204,13 @@ std::vector<std::string> splitString(std::string str, String delimiter)
 std::map<std::string, std::string> parseModeString(std::string modeString)
 {
   std::map<std::string, std::string> result;
-  // modeString will be formatting like a query string
+  // modeString will be formatted like a query string,
+  // except with ':' instead of '&' due to cloud function limitations
   std::vector<std::string> keyValues = splitString(modeString, ":");
 
   for (const std::string& s : keyValues)
   {
-    debug("keyvalue: %s", s.c_str());
+    //debug("keyvalue: %s", s.c_str());
     std::vector<std::string> keyValue = splitString(s, "=");
     if ( keyValue.size() != 2)
     {
@@ -220,35 +225,102 @@ std::map<std::string, std::string> parseModeString(std::string modeString)
   return result;
 }
 
+bool parseInt(std::map<std::string,std::string> keyValues, std::string key, int &value)
+{
+  value = 0;
+  if ( keyValues.count(key) != 1 )
+  {
+    debug("Missing key %s or bad count %d", key.c_str(), keyValues.count(key));
+    return false;
+  }
+
+  if ( !stringToInt(keyValues[key].c_str(), value) )
+  {
+    debug("Cant parse key from string %s", key.c_str(), keyValues[key].c_str());
+    return false;
+  }
+  return true;
+}
+
+bool validate(bool test, String message)
+{
+  if(!test)
+  {
+    debug(message);
+  }
+  return test;
+}
+
 int setMode(String mode)
 {
   std::map<std::string,std::string> keyValues = parseModeString(std::string(mode));
 
-  debug("new mode string: %s", mode.c_str());
-  debug("new mode len: %d", mode.length());
-  debug("%d %d %d %d", keyValues.size(), keyValues.count("mode"), keyValues.count("start"), keyValues.count("end"));
+  const std::string MODE_KEY = "mode";
+  const std::string START_KEY = "start";
+  const std::string END_KEY = "end";
+  const std::string DURATION_KEY = "dur";
+  const std::string WIDTH_KEY = "w";
+  const std::string COLOR_KEY = "color";
+  const std::string THRESHOLD_KEY = "thr";
+  const std::string PERCENT_KEY = "percent";
+  const std::string RESPECT_LIGHT_LEVEL_KEY = "rll";
+
+  debug("New mode string: %s", mode.c_str());
 
   int start;
   int end;
-  if ( keyValues.size() > 0
-    && keyValues.count("mode") > 0
-    && keyValues.count("start") > 0
-    && keyValues.count("end") > 0
-    && stringToInt(keyValues["start"].c_str(), start)
-    && stringToInt(keyValues["end"].c_str(), end))
+  bool respectLightLevel = true;
+  if ( keyValues.count(RESPECT_LIGHT_LEVEL_KEY) > 0 && keyValues[RESPECT_LIGHT_LEVEL_KEY] == "0")
   {
-    debug("%s %d %d", keyValues["mode"].c_str(), start, end);
-      auto newMode = keyValues["mode"];
+    respectLightLevel = false;
+  }
+
+  if ( validate(keyValues.size() > 0, "No keyvalues")
+    && validate(keyValues.count(MODE_KEY) > 0, "No mode key")
+    && parseInt(keyValues, START_KEY, start)
+    && parseInt(keyValues, END_KEY, end)
+    && validate(start >= 0, "Start is too low")
+    && validate(end < PIXEL_COUNT, "End is too high")
+    && validate(start <= end, "End is less than start"))
+  {
+    debug("hmmm");
+      auto newMode = keyValues[MODE_KEY];
       if ( newMode == "rainbow")
       {
         int duration;
         int width;
-        if ( keyValues.count("duration") > 0
-          && keyValues.count("width") > 0
-          && stringToInt(keyValues["duration"].c_str(), duration)
-          && stringToInt(keyValues["width"].c_str(), width))
+        if ( keyValues.count(DURATION_KEY) > 0
+          && keyValues.count(WIDTH_KEY) > 0
+          && stringToInt(keyValues[DURATION_KEY].c_str(), duration)
+          && stringToInt(keyValues[WIDTH_KEY].c_str(), width))
         {
-          animations.push_back(std::unique_ptr<Animation>(new Rainbow(frame, start, end, duration, width)));
+          animations.push_back(std::unique_ptr<Animation>(new Rainbow(frame, start, end, duration, width, respectLightLevel)));
+          return 0;
+        }
+      }
+      else if ( newMode == "staticcolor")
+      {
+        int color;
+        if ( keyValues.count(COLOR_KEY) > 0
+          && stringToInt(keyValues[COLOR_KEY].c_str(), 16, color))
+        {
+          animations.push_back(std::unique_ptr<Animation>(new StaticColor(color, start, end, respectLightLevel)));
+          return 0;
+        }
+      }
+      else if ( newMode == "sparkle")
+      {
+        int color;
+        int duration;
+        int threshold;
+        if ( keyValues.count(COLOR_KEY) > 0
+          && parseInt(keyValues, DURATION_KEY, duration)
+          && parseInt(keyValues, THRESHOLD_KEY, threshold)
+          && stringToInt(keyValues[COLOR_KEY].c_str(), 16, color))
+        {
+          debug("wha");
+          animations.push_back(std::unique_ptr<Animation>(new Sparkle(color, threshold, 1, duration, start, end, respectLightLevel)));
+          debug("New Sparkle Added");
           return 0;
         }
       }
@@ -282,36 +354,18 @@ void setup() {
     pinMode(A5,OUTPUT);
     digitalWrite(A5,HIGH);
 
-    Particle.variable("analogvalue", &analogvalue, INT);
+    Particle.variable("lightLevel", &lightLevel, INT);
     Particle.variable("mode", &mode, INT);
     Particle.function("setMode", setMode);
-  //strip1.begin();
-  //strip2.begin();
 
-  //debug("Version: %08x", System.versionNumber());
-  //colorAll(strip1.Color(0,0,0));
-  //colorAll(strip2.Color(0,0,0));
-
-  //strip1.show();
-  //strip2.show();
-
-  int16_t h;
-  uint8_t s;
-  uint8_t v;
-  Color::ColorToHsv(Adafruit_NeoPixel::Color(255,0,0), h, s, v);
-
-  debug("%d %d %d", (int)h, (int)s, (int)v);
-
-  uint32_t color = Color::HsvToColor(h, 255, v);
-  debug("%d %d %d", (uint8_t)(color>>16), (uint8_t)(color>>8), (uint8_t)(color));
-
-  //animations.push_back(std::unique_ptr<Animation>(new Sparkle(Adafruit_NeoPixel::Color(255,0,0) , 360, 1, 1000, 0, PIXEL_COUNT - 1)));
-  animations.push_back(std::unique_ptr<Animation>(new Rainbow(frame, 0, 50, 500, 10)));
-  animations.push_back(std::unique_ptr<Animation>(new Rainbow(frame, 50, 150, 1500, 30)));
-  animations.push_back(std::unique_ptr<Animation>(new StaticColor(255, 150, 200)));
-  animations.push_back(std::unique_ptr<Animation>(new Sparkle(Adafruit_NeoPixel::Color(255,0,0) , 20, 1, 1000, 200, PIXEL_COUNT - 1)));
-  animations.push_back(std::unique_ptr<Animation>(new Sparkle(Adafruit_NeoPixel::Color(0,255,0) , 40, 1, 2000, 25, 75)));
-
+    animations.push_back(std::unique_ptr<Animation>(new StaticColor(Adafruit_NeoPixel::Color(255,255,255), 0, 268, true)));
+/*
+  animations.push_back(std::unique_ptr<Animation>(new Rainbow(frame, 0, 50, 500, 10, true)));
+  animations.push_back(std::unique_ptr<Animation>(new Rainbow(frame, 50, 150, 1500, 30, true)));
+  animations.push_back(std::unique_ptr<Animation>(new StaticColor(255, 150, 200, true)));
+  animations.push_back(std::unique_ptr<Animation>(new Sparkle(Adafruit_NeoPixel::Color(255,0,0) , 20, 1, 1000, 200, PIXEL_COUNT - 1, true)));
+  animations.push_back(std::unique_ptr<Animation>(new Sparkle(Adafruit_NeoPixel::Color(0,255,0) , 40, 1, 2000, 25, 75, true)));
+*/
   publishModes();
 }
 
@@ -357,12 +411,14 @@ void nextFrame()
 {
   ++frame;
 
-  // Remove modes that didnt render anything
+  lightLevel = analogRead(A0);
+
   bool modeChanged = false;
   for(int i = animations.size() - 1; i >= 0; --i)
   {
-    animations[i]->Render(frame, pixelBuffer);
+    animations[i]->Render(frame, lightLevel, pixelBuffer);
 
+    // Remove modes that didnt render anything
     if ( animations[i]->IsObsolete() )
     {
       animations.erase(animations.begin() + i);

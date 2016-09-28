@@ -3,8 +3,8 @@
 #include "Color.h"
 #include "PixelBuffer.h"
 
-Sparkle::Sparkle(uint32_t baseColor, int hueVariance, float newSparklePercent, int sparkleDurationMs, int start, int end)
-  :Animation(start, end)
+Sparkle::Sparkle(uint32_t baseColor, int hueVariance, float newSparklePercent, int sparkleDurationMs, int start, int end, bool respectLightLevel)
+  :Animation(start, end, respectLightLevel)
 {
     _baseColor = baseColor;
     _hueVariance = hueVariance;
