@@ -20,6 +20,7 @@ PRODUCT_VERSION(2);
 #include "Color.h"
 #include "LightLevel.h"
 #include "Pluck.h"
+#include "Secret.h"
 
 /* ======================= prototypes =============================== */
 
@@ -338,6 +339,7 @@ void setup() {
   publishModes();
 }
 int lastLightLevelChange = 0;
+Secret secret;
 void loop() {
   rawLightLevel = analogRead(A0);
 
@@ -351,6 +353,13 @@ void loop() {
     lightLevel = (int)CalcLightLevelFromAnalog(rawLightLevel);
     if ( lastLightLevel != lightLevel )
     {
+      Animation* a = secret.Knock(lightLevel, rawLightLevel);
+      if ( a != NULL )
+      {
+        animations.clear();
+        animations.push_back(std::unique_ptr<Animation>(a));
+      }
+      publishLightLevel(rawLightLevel, lightLevel);
     }
   }
 
