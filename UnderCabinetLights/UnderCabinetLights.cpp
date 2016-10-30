@@ -299,6 +299,7 @@ void setup() {
   Particle.function("setMode", setMode);
 
   animations.push_back(std::unique_ptr<Animation>(new StaticColor(Adafruit_NeoPixel::Color(255,255,255), 0, 268, true)));
+  //animations.push_back(std::unique_ptr<Animation>(new Pluck(Adafruit_NeoPixel::Color(0,0,255), 30, 400, 0, 268, true)));
 
   publishModes();
 }
