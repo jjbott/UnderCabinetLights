@@ -18,6 +18,8 @@ PRODUCT_VERSION(2);
 #include "Clock.h"
 #include "PixelBuffer.h"
 #include "Color.h"
+#include "LightLevel.h"
+#include "Pluck.h"
 
 /* ======================= prototypes =============================== */
 
@@ -119,6 +121,7 @@ uint32_t hsvToColor(uint16_t h /* 0 - 359 */, uint8_t s /* 0 - 255 */, uint8_t v
 }
 
 int lightLevel;
+int rawLightLevel;
 int litSegment = -1;
 
 void publishModes()
@@ -140,6 +143,37 @@ void publishModes()
       //ss << anim->GetDescription().c_str();
   }
   ss << "]";
+
+  std::string str = ss.str();
+  UDP Udp;
+  Udp.begin(123);
+  Udp.sendPacket(str.c_str(), str.length(), Config::PublishToIp, Config::PublishToPort);
+}
+
+void publishLightLevel(int rawLightLevel, int lightLevel)
+{
+  std::ostringstream ss;
+  ss << "l";
+  ss << rawLightLevel;
+  ss << ",";
+  ss << lightLevel;
+
+  std::string str = ss.str();
+  UDP Udp;
+  Udp.begin(123);
+  Udp.sendPacket(str.c_str(), str.length(), Config::PublishToIp, Config::PublishToPort);
+}
+
+int actualFrameCount = 0;
+void publishFps()
+{
+  std::ostringstream ss;
+  ss << "fps";
+  ss << actualFrameCount;
+  ss << ",";
+  ss << (int)Config::FPS;
+
+  actualFrameCount = 0;
 
   std::string str = ss.str();
   UDP Udp;
@@ -303,30 +337,22 @@ void setup() {
 
   publishModes();
 }
+int lastLightLevelChange = 0;
 void loop() {
-  //dirty = false;
-  loopCounter++;
+  rawLightLevel = analogRead(A0);
 
-  if ( Clock::TriggerEveryXMicros(MICROS_PER_FRAME, lastFrameTime) )
+  // If it hasnt been at least 100ms since the last light level change, dont bother checking.
+  // The incandecent light takes a bit to get the right light level,
+  // so waiting ensure we dont check during a transition.
+  if ( Clock::ElapsedMillis(Clock::Millis(), lastLightLevelChange) > 100)
   {
-      nextFrame();
-      //strip1.show();
-      //strip2.show();
-  }
-  /*
-    switch((Mode)mode)
+    lastLightLevelChange = Clock::Millis();
+    int lastLightLevel = lightLevel;
+    lightLevel = (int)CalcLightLevelFromAnalog(rawLightLevel);
+    if ( lastLightLevel != lightLevel )
     {
-        case Mode::Rainbow:
-            rainbowCycle();
-            break;
-        case Mode::StripCycleTest:
-            stripCycleTest();
-            break;
-        default: // off
-            break;
     }
-    */
-
+  }
 
   nextFrame(Clock::TriggerEveryXMicros(MICROS_PER_FRAME, lastFrameTime));
 
@@ -352,7 +378,7 @@ void nextFrame(int elapsedFrames)
   bool modeChanged = false;
   for(int i = animations.size() - 1; i >= 0; --i)
   {
-    animations[i]->Render(frame, lightLevel, pixelBuffer);
+    animations[i]->Render(frame, (LightLevel)lightLevel, pixelBuffer);
 
     // Remove modes that didnt render anything
     if ( animations[i]->IsObsolete() )
