@@ -105,7 +105,7 @@ void PixelBuffer::PublishLightStatus(bool changesMade)
   if ( !_stripStatusPublished || changesMade)
   {
     _stripStatusPublished = false;
-    if ( Clock::TriggerEveryXMillis(100, _lastStripStatusPublish) )
+    if ( Clock::TriggerEveryXMillis(500, _lastStripStatusPublish) )
     {
       int count = PIXEL_COUNT;
 
