@@ -122,10 +122,6 @@ uint32_t hsvToColor(uint16_t h /* 0 - 359 */, uint8_t s /* 0 - 255 */, uint8_t v
     }
 }
 
-int lightLevel;
-int rawLightLevel;
-int litSegment = -1;
-
 void publishModes()
 {
   std::ostringstream ss;
@@ -330,8 +326,6 @@ void setup() {
   pinMode(A5,OUTPUT);
   digitalWrite(A5,HIGH);
 
-  Particle.variable("lightLevel", &lightLevel, INT);
-  Particle.variable("rLightLevel", &rawLightLevel, INT);
   Particle.function("setMode", setMode);
 
   //animations.push_back(std::unique_ptr<Animation>(new StaticColor(Adafruit_NeoPixel::Color(255,255,255), 0, 268, true)));
@@ -340,36 +334,13 @@ void setup() {
 
   publishModes();
 }
-int lastLightLevelChange = 0;
-Secret secret;
-void loop() {
-  rawLightLevel = analogRead(A0);
 
-  // If it hasnt been at least 100ms since the last light level change, dont bother checking.
-  // The incandecent light takes a bit to get the right light level,
-  // so waiting ensure we dont check during a transition.
-  if ( Clock::ElapsedMillis(Clock::Millis(), lastLightLevelChange) > 100)
-  {
-    lastLightLevelChange = Clock::Millis();
-    int lastLightLevel = lightLevel;
-    lightLevel = (int)CalcLightLevelFromAnalog(rawLightLevel);
-    if ( lastLightLevel != lightLevel )
-    {
-      Animation* a = secret.Knock(lightLevel, rawLightLevel);
-      if ( a != NULL )
-      {
-        animations.clear();
-        animations.push_back(std::unique_ptr<Animation>(a));
-      }
-      publishLightLevel(rawLightLevel, lightLevel);
-    }
-  }
+void loop() {
 
   nextFrame(Clock::TriggerEveryXMicros(MICROS_PER_FRAME, lastFrameTime));
 
   if ( Clock::TriggerEveryXMillis(1000, lastPublish) > 0)
   {
-    publishLightLevel(rawLightLevel, lightLevel);
     publishModes();
     publishFps();
   }
@@ -389,7 +360,7 @@ void nextFrame(int elapsedFrames)
   bool modeChanged = false;
   for(int i = animations.size() - 1; i >= 0; --i)
   {
-    animations[i]->Render(frame, (LightLevel)lightLevel, pixelBuffer);
+    animations[i]->Render(frame, (LightLevel::High), pixelBuffer);
 
     // Remove modes that didnt render anything
     if ( animations[i]->IsObsolete() )
