@@ -1,5 +1,10 @@
 #include "application.h"
 
+#pragma once
+
+#define PIXEL_COUNT_STRIP1 300
+#define PIXEL_COUNT_STRIP2 0
+
 class Config
 {
   public:

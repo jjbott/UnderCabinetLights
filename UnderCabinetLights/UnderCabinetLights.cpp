@@ -21,6 +21,7 @@ PRODUCT_VERSION(2);
 #include "LightLevel.h"
 #include "Pluck.h"
 #include "Secret.h"
+#include "TestPattern.h"
 
 /* ======================= prototypes =============================== */
 
@@ -333,7 +334,8 @@ void setup() {
   Particle.variable("rLightLevel", &rawLightLevel, INT);
   Particle.function("setMode", setMode);
 
-  animations.push_back(std::unique_ptr<Animation>(new StaticColor(Adafruit_NeoPixel::Color(255,255,255), 0, 268, true)));
+  //animations.push_back(std::unique_ptr<Animation>(new StaticColor(Adafruit_NeoPixel::Color(255,255,255), 0, 268, true)));
+  animations.push_back(std::unique_ptr<Animation>(new TestPattern(0, PIXEL_COUNT, false)));
   //animations.push_back(std::unique_ptr<Animation>(new Pluck(Adafruit_NeoPixel::Color(0,0,255), 30, 400, 0, 268, true)));
 
   publishModes();

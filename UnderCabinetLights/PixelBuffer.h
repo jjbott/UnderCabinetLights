@@ -1,9 +1,8 @@
-#define PIXEL_COUNT_STRIP1 43
-#define PIXEL_COUNT_STRIP2 226
-#define PIXEL_COUNT (PIXEL_COUNT_STRIP1 + PIXEL_COUNT_STRIP2)
-
 #include "application.h"
+#include "Config.h"
 #include "neopixel.h"
+
+#define PIXEL_COUNT (PIXEL_COUNT_STRIP1 + PIXEL_COUNT_STRIP2)
 
 class PixelBuffer
 {
