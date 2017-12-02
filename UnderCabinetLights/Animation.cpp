@@ -8,10 +8,25 @@ Animation::Animation(int start, int end, bool respectLightLevel)
   _respectLightLevel = respectLightLevel;
 }
 
+int Animation::GetStart()
+{
+  return _start;
+}
+
+int Animation::GetEnd()
+{
+  return _end;
+}
+
 bool Animation::IsObsolete()
 {
   // I'll mess up _start and _end when a Render cycle doesnt actually render anything
   return _start > _end;
+}
+
+void Animation::UpdateFrame(ulong frame)
+{
+  _currentFrame = frame;
 }
 
 void Animation::Render(ulong frame, LightLevel lightLevel, PixelBuffer &pb)
@@ -22,13 +37,15 @@ void Animation::Render(ulong frame, LightLevel lightLevel, PixelBuffer &pb)
     i = ++_start;
   }
 
+  UpdateFrame(frame);
+
   int lastRenderedIndex = -1;
   for(i = _start; i <= _end; ++i)
   {
     // Only render to pixels that someone else didnt get to first
     if ( !pb.IsPixelDirty(i) )
     {
-      uint32_t color = GenerateColor(frame, i, pb);
+      uint32_t color = GenerateColor(i, pb);
       if ( _respectLightLevel )
       {
         if ( lightLevel == LightLevel::Off)

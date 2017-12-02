@@ -1,4 +1,5 @@
 #include "neopixel.h"
+#include "math.h"
 #pragma once
 
 class Color
@@ -95,6 +96,24 @@ class Color
         {
             h += 360;
         }
+    }
+
+    static uint32_t Dim(uint32_t rgbColor, double dimAmount)
+    {
+      if ( dimAmount > 1 ) dimAmount = 1;
+      if ( dimAmount < 0 ) dimAmount = 0;
+
+      dimAmount = pow(dimAmount, 1.5);
+
+      uint8_t r = rgbColor >> 16;
+      uint8_t g = rgbColor >> 8;
+      uint8_t b = rgbColor;
+
+      r *= dimAmount;
+      g *= dimAmount;
+      b *= dimAmount;
+
+      return Adafruit_NeoPixel::Color(r, g, b);
     }
 
 };

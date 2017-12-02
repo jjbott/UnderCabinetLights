@@ -22,6 +22,9 @@ PRODUCT_VERSION(2);
 #include "Pluck.h"
 #include "Secret.h"
 #include "TestPattern.h"
+#include "Animations/XmasLights.h"
+#include "Animations/Decay.h"
+#include "Animations/Rotator.h"
 
 /* ======================= prototypes =============================== */
 
@@ -40,9 +43,8 @@ STARTUP(WiFi.selectAntenna(ANT_EXTERNAL));
 
 SYSTEM_MODE(AUTOMATIC);
 
-
 PixelBuffer pixelBuffer;
-std::vector<std::unique_ptr<Animation>> animations;
+std::vector<std::shared_ptr<Animation>> animations;
 
 uint32_t getColor(int index);
 uint32_t rainbowCycle(int i);
@@ -286,7 +288,7 @@ int setMode(String mode)
           && stringToInt(keyValues[DURATION_KEY].c_str(), duration)
           && stringToInt(keyValues[WIDTH_KEY].c_str(), width))
         {
-          animations.push_back(std::unique_ptr<Animation>(new Rainbow(frame, start, end, duration, width, respectLightLevel)));
+          animations.push_back(std::shared_ptr<Animation>(new Rainbow(frame, start, end, duration, width, respectLightLevel)));
           return 0;
         }
       }
@@ -296,7 +298,7 @@ int setMode(String mode)
         if ( keyValues.count(COLOR_KEY) > 0
           && stringToInt(keyValues[COLOR_KEY].c_str(), 16, color))
         {
-          animations.push_back(std::unique_ptr<Animation>(new StaticColor(color, start, end, respectLightLevel)));
+          animations.push_back(std::shared_ptr<Animation>(new StaticColor(color, start, end, respectLightLevel)));
           return 0;
         }
       }
@@ -311,7 +313,7 @@ int setMode(String mode)
           && stringToInt(keyValues[COLOR_KEY].c_str(), 16, color))
         {
           debug("wha");
-          animations.push_back(std::unique_ptr<Animation>(new Sparkle(color, threshold, 1, duration, start, end, respectLightLevel)));
+          animations.push_back(std::shared_ptr<Animation>(new Sparkle(color, threshold, 1, duration, start, end, respectLightLevel)));
           debug("New Sparkle Added");
           return 0;
         }
@@ -322,14 +324,82 @@ int setMode(String mode)
 }
 
 void setup() {
+
   pinMode(A0,INPUT);
   pinMode(A5,OUTPUT);
   digitalWrite(A5,HIGH);
 
   Particle.function("setMode", setMode);
 
+  // boot loop detection
+  uint8_t eepromInitialized;
+  uint32_t now = Time.now();
+
+  EEPROM.get(0, eepromInitialized);
+  if ( eepromInitialized != 0 )
+  {
+    EEPROM.put(0, 0);
+    EEPROM.put(1, now);
+    Particle.publish("DEBUG", "Initialized boot loop detection");
+  }
+  else
+  {
+    uint32_t lastBootTime;
+    EEPROM.get(1, lastBootTime);
+    EEPROM.put(1, now);
+    if ( (now - lastBootTime) < 30 )
+    {
+      // We're probably in a boot loop. Reboot into safe mode so I can fix the firmware
+      Particle.publish("DEBUG", "Boot loop detected, entering safe mode");
+      System.enterSafeMode();
+    }
+    else
+    {
+        Particle.publish("DEBUG", String::format("Boot loop detection passed, everything is fine I hope! %d", (now - lastBootTime)).c_str() );
+    }
+  }
+
   //animations.push_back(std::unique_ptr<Animation>(new StaticColor(Adafruit_NeoPixel::Color(255,255,255), 0, 268, true)));
-  animations.push_back(std::unique_ptr<Animation>(new TestPattern(0, PIXEL_COUNT, false)));
+  //animations.push_back(std::unique_ptr<Animation>(new TestPattern(0, PIXEL_COUNT, false)));
+
+  //animations.push_back(std::unique_ptr<Animation>(new XmasLights({Adafruit_NeoPixel::Color(255,255,255)}, 0, PIXEL_COUNT, 0, 1)));
+
+
+  animations.push_back(
+    std::shared_ptr<Animation>(
+      new Rotator({
+        std::shared_ptr<Animation>(
+        new Decay(
+          new XmasLights(
+            {
+              Adafruit_NeoPixel::Color(255,0,0), // R
+              Adafruit_NeoPixel::Color(0,0,255), // B
+              Adafruit_NeoPixel::Color(255,128,0), // Y
+              Adafruit_NeoPixel::Color(178,0,255), // V
+              Adafruit_NeoPixel::Color(255,55,0), // O
+              Adafruit_NeoPixel::Color(0,255,0) // G
+            }, 0, PIXEL_COUNT, 6000, 10)
+        , .7)),
+        std::shared_ptr<Animation>(new Sparkle(Adafruit_NeoPixel::Color(255,255,255), 10, .5, 1000, 0, PIXEL_COUNT, false))
+        ,std::shared_ptr<Animation>(
+        new Decay(
+          new XmasLights(
+            {
+              Adafruit_NeoPixel::Color(255,255,255)
+            }, 0, PIXEL_COUNT, -1000, 10)
+        , .7))
+      }, 0, PIXEL_COUNT, 5, 1)
+    ));
+
+/*
+    animations.push_back(std::unique_ptr<Animation>(
+      new XmasLights(
+        {
+          Adafruit_NeoPixel::Color(255,0,0), // R
+          Adafruit_NeoPixel::Color(0,255,0) // G
+        }, 0, PIXEL_COUNT, 10, 1, 0)));
+*/
+
   //animations.push_back(std::unique_ptr<Animation>(new Pluck(Adafruit_NeoPixel::Color(0,0,255), 30, 400, 0, 268, true)));
 
   publishModes();

@@ -19,7 +19,7 @@ Sparkle::Sparkle(uint32_t baseColor, int hueVariance, float newSparklePercent, i
     }
 }
 
-uint32_t Sparkle::GenerateColor(ulong frame, int i, const PixelBuffer &pb)
+uint32_t Sparkle::GenerateColor(int i, const PixelBuffer &pb)
 {
   if ( (100 * ((double) rand() / (RAND_MAX))) < _newSparklePercent )
   {
@@ -28,7 +28,11 @@ uint32_t Sparkle::GenerateColor(ulong frame, int i, const PixelBuffer &pb)
     uint8_t s;
     uint8_t v;
     Color::ColorToHsv(_baseColor, h, s, v); // should do this in constructor
-    int16_t hue = h + (rand() % (_hueVariance * 2) - _hueVariance);
+    int16_t hue = h;
+    if ( _hueVariance > 0 && _hueVariance <= 360)
+    {
+      hue = h + (rand() % (_hueVariance * 2) - _hueVariance);
+    }
     return Color::HsvToColor(hue, s, v);
   }
   else

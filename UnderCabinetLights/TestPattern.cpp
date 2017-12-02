@@ -8,9 +8,9 @@ TestPattern::TestPattern(int start, int end, bool respectLightLevel)
 {
 }
 
-uint32_t TestPattern::GenerateColor(ulong frame, int i, const PixelBuffer &pb)
+uint32_t TestPattern::GenerateColor(int i, const PixelBuffer &pb)
 {
-  int phase = (frame / Config::FPS) % 4;
+  int phase = (_currentFrame / Config::FPS) % 4;
   switch(phase)
   {
     case 0: return 0xFF0000;

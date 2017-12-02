@@ -17,9 +17,9 @@ uint16_t Rainbow::CalculateStep(int frame)
   return fmod((frame - _startingFrame), _cycleDurationFrames) * 360 / _cycleDurationFrames;
 }
 
-uint32_t Rainbow::GenerateColor(ulong frame, int i, const PixelBuffer &pb)
+uint32_t Rainbow::GenerateColor(int i, const PixelBuffer &pb)
 {
-  uint16_t step = CalculateStep(frame);
+  uint16_t step = CalculateStep(_currentFrame);
   return Color::HsvToColor((i * 360 / _width) + step, 255, 255);
 }
 

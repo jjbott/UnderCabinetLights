@@ -4,7 +4,7 @@ class Rainbow : public Animation
 {
   public:
     Rainbow(uint32_t startingFrame, int start, int end, int cycleDurationMs, int width, bool respectLightLevel);
-    uint32_t GenerateColor(ulong frame, int i, const PixelBuffer &pb);
+    uint32_t GenerateColor(int i, const PixelBuffer &pb);
     String GetDescription();
   private:
     uint16_t CalculateStep(int frame);

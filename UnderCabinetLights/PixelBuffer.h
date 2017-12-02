@@ -1,3 +1,5 @@
+#pragma once
+
 #include "application.h"
 #include "Config.h"
 #include "neopixel.h"

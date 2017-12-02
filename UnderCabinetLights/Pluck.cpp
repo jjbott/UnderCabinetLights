@@ -16,33 +16,34 @@ Pluck::Pluck(uint32_t baseColor, int hueVariance, int durationMs, int start, int
     _currentColor = _baseColor;
 }
 
-uint32_t Pluck::GenerateColor(ulong frame, int i, const PixelBuffer &pb)
+void Pluck::UpdateFrame(ulong frame)
+{
+  Animation::UpdateFrame(frame);
+
+  // recalc... something
+  ulong frameDiff = abs(_currentFrame - _startFrame);
+  double framesPerCycle = _durationMs * Config::FPS / 1000.0;
+  double cyclePosition = (frameDiff / framesPerCycle) - floor(frameDiff / framesPerCycle);
+  if ( cyclePosition < _currentCyclePosition )
+  {
+    // started new cycle. Pick new color.  Stole code from Sparkle. Functionify it in Color someday. Thanks.
+    int16_t h;
+    uint8_t s;
+    uint8_t v;
+    Color::ColorToHsv(_baseColor, h, s, v);
+    int16_t hue = h + (rand() % (_hueVariance * 2) - _hueVariance);
+    _currentColor = Color::HsvToColor(hue, s, v);
+  }
+  _currentCyclePosition = cyclePosition;
+
+  _currentIntensity = 255.0 * pow(2.7182818284, -2.624 * _currentCyclePosition);
+}
+
+uint32_t Pluck::GenerateColor(int i, const PixelBuffer &pb)
 {
   if ( _startFrame == 0xFFFFFFFF )
   {
-    _startFrame = frame;
-  }
-
-  if ( _currentFrame != frame )
-  {
-    _currentFrame = frame;
-    // recalc... something
-    ulong frameDiff = abs(_currentFrame - _startFrame);
-    double framesPerCycle = _durationMs * Config::FPS / 1000.0;
-    double cyclePosition = (frameDiff / framesPerCycle) - floor(frameDiff / framesPerCycle);
-    if ( cyclePosition < _currentCyclePosition )
-    {
-      // started new cycle. Pick new color.  Stole code from Sparkle. Functionify it in Color someday. Thanks.
-      int16_t h;
-      uint8_t s;
-      uint8_t v;
-      Color::ColorToHsv(_baseColor, h, s, v);
-      int16_t hue = h + (rand() % (_hueVariance * 2) - _hueVariance);
-      _currentColor = Color::HsvToColor(hue, s, v);
-    }
-    _currentCyclePosition = cyclePosition;
-
-    _currentIntensity = 255.0 * pow(2.7182818284, -2.624 * _currentCyclePosition);
+    _startFrame = _currentFrame;
   }
 
   int16_t h;
