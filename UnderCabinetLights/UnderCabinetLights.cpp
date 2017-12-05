@@ -296,7 +296,7 @@ int setMode(String mode)
           && stringToInt(keyValues[COLOR_KEY].c_str(), 16, color))
         {
           debug("wha");
-          animations.push_back(std::shared_ptr<Animation>(new Sparkle(color, threshold, 1, duration, start, end, respectLightLevel)));
+          animations.push_back(std::shared_ptr<Animation>(new Sparkle({color}, threshold, 1, duration, start, end, respectLightLevel)));
           debug("New Sparkle Added");
           return 0;
         }
@@ -352,26 +352,61 @@ void setup() {
     std::shared_ptr<Animation>(
       new Rotator({
         std::shared_ptr<Animation>(
-        new Decay(
-          new XmasLights(
-            {
-              Adafruit_NeoPixel::Color(255,0,0), // R
-              Adafruit_NeoPixel::Color(0,0,255), // B
-              Adafruit_NeoPixel::Color(255,128,0), // Y
-              Adafruit_NeoPixel::Color(178,0,255), // V
-              Adafruit_NeoPixel::Color(255,55,0), // O
-              Adafruit_NeoPixel::Color(0,255,0) // G
-            }, 0, PIXEL_COUNT, 6000, 10)
-        , .7)),
-        std::shared_ptr<Animation>(new Sparkle(Adafruit_NeoPixel::Color(255,255,255), 10, .5, 1000, 0, PIXEL_COUNT, false))
+          new Decay(
+            new XmasLights(
+              {
+                Adafruit_NeoPixel::Color(255,0,0), // R
+                Adafruit_NeoPixel::Color(0,0,255), // B
+                Adafruit_NeoPixel::Color(255,128,0), // Y
+                Adafruit_NeoPixel::Color(178,0,255), // V
+                Adafruit_NeoPixel::Color(255,55,0), // O
+                Adafruit_NeoPixel::Color(0,255,0) // G
+              }, 0, PIXEL_COUNT, 6000, 10)
+          , .9))
         ,std::shared_ptr<Animation>(
-        new Decay(
-          new XmasLights(
-            {
-              Adafruit_NeoPixel::Color(255,255,255)
-            }, 0, PIXEL_COUNT, -1000, 10)
-        , .7))
-      }, 0, PIXEL_COUNT, 5, 1)
+            new Decay(
+              new XmasLights(
+                {
+                  Adafruit_NeoPixel::Color(255,0,0), // R
+                  Adafruit_NeoPixel::Color(0,0,255), // B
+                  Adafruit_NeoPixel::Color(255,128,0), // Y
+                  Adafruit_NeoPixel::Color(178,0,255), // V
+                  Adafruit_NeoPixel::Color(255,55,0), // O
+                  Adafruit_NeoPixel::Color(0,255,0) // G
+                }, 0, PIXEL_COUNT, 6000, 10)
+            , .9))
+        ,std::shared_ptr<Animation>(new Sparkle({Adafruit_NeoPixel::Color(255,255,255)}, 10, .5, 1000, 0, PIXEL_COUNT, false))
+        ,std::shared_ptr<Animation>(
+          new Decay(
+            new XmasLights(
+              {
+                Adafruit_NeoPixel::Color(255,255,255)
+              }, 0, PIXEL_COUNT, 1000, 10
+          ), .7))
+          ,std::shared_ptr<Animation>(
+            new Decay(
+              new XmasLights(
+                {
+                  Adafruit_NeoPixel::Color(255,255,255)
+                }, 0, PIXEL_COUNT, -1000, 10
+            ), .7))
+        , std::shared_ptr<Animation>(new Sparkle({Adafruit_NeoPixel::Color(255,0,0), Adafruit_NeoPixel::Color(0,255,0)}, 10, .5, 1000, 0, PIXEL_COUNT, false))
+        , std::shared_ptr<Animation>(new Sparkle({
+          Adafruit_NeoPixel::Color(255,0,0), // R
+          Adafruit_NeoPixel::Color(0,0,255), // B
+          Adafruit_NeoPixel::Color(255,128,0), // Y
+          Adafruit_NeoPixel::Color(178,0,255), // V
+          Adafruit_NeoPixel::Color(255,55,0), // O
+          Adafruit_NeoPixel::Color(0,255,0) // G
+        }, 10, .4, 2000, 0, PIXEL_COUNT, false))
+        ,std::shared_ptr<Animation>(
+            new XmasLights(
+              {
+                Adafruit_NeoPixel::Color(255,0,0), // R
+                Adafruit_NeoPixel::Color(0,255,0) // G
+              }, 0, PIXEL_COUNT, 1000, 5)
+            )
+      }, 0, PIXEL_COUNT, 30, 1, true)
     ));
 
 /*
