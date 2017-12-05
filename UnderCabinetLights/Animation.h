@@ -1,5 +1,4 @@
 #include "application.h"
-#include "LightLevel.h"
 #include "PixelBuffer.h"
 #pragma once
 
@@ -10,7 +9,7 @@ class Animation
   public:
     Animation(int start, int end, bool respectLightLevel);
     bool IsObsolete();
-    void Render(ulong frame, LightLevel LightLevel, PixelBuffer &pb);
+    void Render(ulong frame, PixelBuffer &pb);
     virtual String GetDescription() = 0;
 
     // These are only public so animation wrappers can use them.

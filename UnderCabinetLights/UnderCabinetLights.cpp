@@ -18,9 +18,6 @@ PRODUCT_VERSION(2);
 #include "Clock.h"
 #include "PixelBuffer.h"
 #include "Color.h"
-#include "LightLevel.h"
-#include "Pluck.h"
-#include "Secret.h"
 #include "TestPattern.h"
 #include "Animations/XmasLights.h"
 #include "Animations/Decay.h"
@@ -143,20 +140,6 @@ void publishModes()
       //ss << anim->GetDescription().c_str();
   }
   ss << "]";
-
-  std::string str = ss.str();
-  UDP Udp;
-  Udp.begin(123);
-  Udp.sendPacket(str.c_str(), str.length(), Config::PublishToIp, Config::PublishToPort);
-}
-
-void publishLightLevel(int rawLightLevel, int lightLevel)
-{
-  std::ostringstream ss;
-  ss << "l";
-  ss << rawLightLevel;
-  ss << ",";
-  ss << lightLevel;
 
   std::string str = ss.str();
   UDP Udp;
@@ -430,7 +413,7 @@ void nextFrame(int elapsedFrames)
   bool modeChanged = false;
   for(int i = animations.size() - 1; i >= 0; --i)
   {
-    animations[i]->Render(frame, (LightLevel::High), pixelBuffer);
+    animations[i]->Render(frame, pixelBuffer);
 
     // Remove modes that didnt render anything
     if ( animations[i]->IsObsolete() )
