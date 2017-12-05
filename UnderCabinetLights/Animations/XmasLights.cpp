@@ -19,7 +19,7 @@ XmasLights::XmasLights(
 void XmasLights::UpdateFrame(ulong frame)
 {
   Animation::UpdateFrame(frame);
-  
+
   double cycleDurationFrames = _speed * Config::FPS / 1000.0;
   _currentOffset = fmod((frame - _startingFrame), cycleDurationFrames) * _distance * _colors.size() / cycleDurationFrames;
 }
@@ -28,12 +28,13 @@ uint32_t XmasLights::GenerateColor(int i, const PixelBuffer &pb)
 {
   double fraction = _currentOffset - (int)_currentOffset;
   i -= (int)_currentOffset;
-  if (i%_distance==0)
+  int mod = i%_distance;
+  if (mod==0)
   {
     //return _colors[(i/_distance) % _colors.size()];
     return  Color::Dim(_colors[(i/_distance) % _colors.size()], 1.0 - fraction);
   }
-  else if ((i-1)%_distance==0)
+  else if (mod == 1)
   {
     return  Color::Dim(_colors[((i-1)/_distance) % _colors.size()], fraction);
   }

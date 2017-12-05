@@ -103,8 +103,6 @@ class Color
       if ( dimAmount > 1 ) dimAmount = 1;
       if ( dimAmount < 0 ) dimAmount = 0;
 
-      dimAmount = pow(dimAmount, 1.5);
-
       uint8_t r = rgbColor >> 16;
       uint8_t g = rgbColor >> 8;
       uint8_t b = rgbColor;
