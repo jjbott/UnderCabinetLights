@@ -8,11 +8,13 @@ Rotator::Rotator(
   int start,
   int end,
   int rotateSeconds,
-  int fadeSeconds)
+  int fadeSeconds,
+  bool random)
   : Animation(start, end, false),
   _animations(std::move(animations)),
   _rotateSeconds{rotateSeconds},
-  _fadeSeconds{fadeSeconds}
+  _fadeSeconds{fadeSeconds},
+  _random{random}
 {
   _currentAnimation = _animations[0].get();
   _lastRotateTime = Clock::Millis();
@@ -27,7 +29,19 @@ void Rotator::UpdateFrame(ulong frame)
   bool rotate =  Clock::TriggerEveryXMillis(_rotateSeconds*1000, _lastRotateTime) > 0;
   if ( rotate)
   {
-    _currentAnimationIndex = (_currentAnimationIndex + 1) % _animations.size();
+    if ( _random && (_animations.size() > 1))
+    {
+      int nextAnimationIndex = _currentAnimationIndex;
+      while(nextAnimationIndex == _currentAnimationIndex)
+      {
+        nextAnimationIndex = _animations.size() * ((double) rand() / (RAND_MAX));
+      }
+      _currentAnimationIndex = nextAnimationIndex;
+    }
+    else
+    {
+      _currentAnimationIndex = (_currentAnimationIndex + 1) % _animations.size();
+    }
     _currentAnimation = _animations[_currentAnimationIndex].get();
   }
 

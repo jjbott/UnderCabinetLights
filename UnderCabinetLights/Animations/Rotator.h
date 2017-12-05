@@ -8,7 +8,8 @@ class Rotator : public Animation
     int start,
     int end,
     int rotateSeconds,
-    int fadeSeconds);
+    int fadeSeconds,
+    bool random = false);
     virtual uint32_t GenerateColor(int i, const PixelBuffer &pb);
     void UpdateFrame(ulong frame);
     String GetDescription();
@@ -16,7 +17,7 @@ class Rotator : public Animation
     std::vector<std::shared_ptr<Animation>> _animations;
     int _rotateSeconds;
     int _fadeSeconds;
-    int _offset;
+    bool _random;
     int _currentAnimationIndex = 0;
     Animation* _currentAnimation = 0;
     ulong _lastRotateTime = 0;
