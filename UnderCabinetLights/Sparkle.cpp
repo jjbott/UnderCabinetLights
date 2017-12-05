@@ -3,10 +3,12 @@
 #include "Color.h"
 #include "PixelBuffer.h"
 
-Sparkle::Sparkle(uint32_t baseColor, int hueVariance, float newSparklePercent, int sparkleDurationMs, int start, int end, bool respectLightLevel)
-  :Animation(start, end, respectLightLevel)
+Sparkle::Sparkle(
+    std::vector<uint32_t> colors,
+   int hueVariance, float newSparklePercent, int sparkleDurationMs, int start, int end, bool respectLightLevel)
+  :Animation(start, end, respectLightLevel),
+  _colors(std::move(colors))
 {
-    _baseColor = baseColor;
     _hueVariance = hueVariance;
     _newSparklePercent = newSparklePercent;
     _sparkleDurationMs = sparkleDurationMs;
@@ -27,7 +29,9 @@ uint32_t Sparkle::GenerateColor(int i, const PixelBuffer &pb)
     int16_t h;
     uint8_t s;
     uint8_t v;
-    Color::ColorToHsv(_baseColor, h, s, v); // should do this in constructor
+    uint32_t base_color = _colors[_colors.size() * ((double) rand() / (RAND_MAX))];
+
+    Color::ColorToHsv(base_color, h, s, v); // should do this in constructor
     int16_t hue = h;
     if ( _hueVariance > 0 && _hueVariance <= 360)
     {
@@ -55,6 +59,6 @@ uint32_t Sparkle::GenerateColor(int i, const PixelBuffer &pb)
 String Sparkle::GetDescription()
 {
   char buffer[100];
-  snprintf(buffer, 100, "Sparkle: Base Color #%06X, Variance %d, Percent %f%%, Duration %dms, Start %d, End %d", _baseColor, (int)_hueVariance, _newSparklePercent, (int)_sparkleDurationMs, (int)_start, (int)_end);
+  snprintf(buffer, 100, "Sparkle: Base Color #%06X, Variance %d, Percent %f%%, Duration %dms, Start %d, End %d", _colors[0], (int)_hueVariance, _newSparklePercent, (int)_sparkleDurationMs, (int)_start, (int)_end);
   return String(buffer);
 }
