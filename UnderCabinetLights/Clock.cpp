@@ -1,3 +1,4 @@
+#include "application.h"
 #include "Clock.h"
 
 const unsigned long MAX_MICROS = 35791394;
@@ -19,9 +20,27 @@ unsigned long Clock::ElapsedMillis(unsigned long now, unsigned long since)
   return ElapsedMicros(now * 1000, since * 1000) / 1000;
 }
 
-int Clock::TriggerEveryXMillis(unsigned long x, unsigned long &lastTriggeredMillis)
+bool Clock::TriggerInXSeconds(ulong x, ulong startTime)
 {
-  return Clock::TriggerEveryXMicros(x * 1000, lastTriggeredMillis);
+  return (Time.now() - startTime) > x;
+}
+
+int Clock::TriggerEveryXSeconds(ulong x, ulong& lastTriggeredTime)
+{
+  ulong now = Now();
+  ulong elapsed = now - lastTriggeredTime;
+  if ( elapsed > x )
+  {
+    // I'm assuming that this is called often enough that using "now" will never be super wrong
+    lastTriggeredTime = now;
+    return elapsed / x;
+  }
+  return 0;
+}
+
+int Clock::TriggerEveryXMillis(unsigned long x, unsigned long &lastTriggeredMicros)
+{
+  return Clock::TriggerEveryXMicros(x * 1000, lastTriggeredMicros);
 }
 
 int Clock::TriggerEveryXMicros(ulong x, ulong &lastTriggeredMicros)
@@ -47,5 +66,11 @@ uint32_t Clock::Micros()
 
 uint32_t Clock::Millis()
 {
+  // Max is 35790
   return Micros() / 1000;
+}
+
+uint32_t Clock::Now()
+{
+  return Time.now();
 }

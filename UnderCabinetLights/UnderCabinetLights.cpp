@@ -42,6 +42,8 @@ SYSTEM_MODE(AUTOMATIC);
 
 PixelBuffer pixelBuffer;
 std::vector<std::shared_ptr<Animation>> animations;
+ulong manualAnimationStartTime;
+std::shared_ptr<Animation> manualAnimation;
 
 uint32_t getColor(int index);
 uint32_t rainbowCycle(int i);
@@ -126,18 +128,25 @@ void publishModes()
   std::ostringstream ss;
   ss << "m[";
 
-  bool first = true;
-  for (auto &anim : animations) {
-      if ( !first )
-      {
-        ss << ",";
-      }
-      first = false;
+  if ( manualAnimation != nullptr )
+  {
+    ss << manualAnimation->GetDescription();
+  }
+  else
+  {
+    bool first = true;
+    for (auto &anim : animations) {
+        if ( !first )
+        {
+          ss << ",";
+        }
+        first = false;
 
-      // If this is left as a String object, quotes are added around it.
-      // I should probably know why, but I dont. Luckily I want quotes.
-      ss << anim->GetDescription();
-      //ss << anim->GetDescription().c_str();
+        // If this is left as a String object, quotes are added around it.
+        // I should probably know why, but I dont. Luckily I want quotes.
+        ss << anim->GetDescription();
+        //ss << anim->GetDescription().c_str();
+    }
   }
   ss << "]";
 
@@ -228,82 +237,122 @@ bool validate(bool test, String message)
   return test;
 }
 
+std::shared_ptr<Animation> CreateModeAnimation(String mode)
+{
+  if ( mode == "WhiteSparkle" )
+  {
+    return std::shared_ptr<Animation>(new Sparkle({Adafruit_NeoPixel::Color(255,255,255)}, 10, .5, 1000, 0, PIXEL_COUNT, false));
+  }
+  else if ( mode == "WhiteMarquee" )
+  {
+    return std::shared_ptr<Animation>(
+      new Decay(
+        new XmasLights(
+          {
+            Adafruit_NeoPixel::Color(255,255,255)
+          }, 0, PIXEL_COUNT, 1000, 10
+      ), .7));
+  }
+  else if ( mode == "WhiteMarquee_Reverse" )
+  {
+    return std::shared_ptr<Animation>(
+      new Decay(
+        new XmasLights(
+          {
+            Adafruit_NeoPixel::Color(255,255,255)
+          }, 0, PIXEL_COUNT, -1000, 10
+      ), .7));
+  }
+  else if ( mode == "RainbowSparkle" )
+  {
+    return std::shared_ptr<Animation>(new Sparkle({
+      Adafruit_NeoPixel::Color(255,0,0), // R
+      Adafruit_NeoPixel::Color(0,0,255), // B
+      Adafruit_NeoPixel::Color(255,128,0), // Y
+      Adafruit_NeoPixel::Color(178,0,255), // V
+      Adafruit_NeoPixel::Color(255,55,0), // O
+      Adafruit_NeoPixel::Color(0,255,0) // G
+    }, 10, .4, 2000, 0, PIXEL_COUNT, false));
+  }
+  else if ( mode == "RainbowMarquee" )
+  {
+    return std::shared_ptr<Animation>(
+      new Decay(
+        new XmasLights(
+          {
+            Adafruit_NeoPixel::Color(255,0,0), // R
+            Adafruit_NeoPixel::Color(0,0,255), // B
+            Adafruit_NeoPixel::Color(255,128,0), // Y
+            Adafruit_NeoPixel::Color(178,0,255), // V
+            Adafruit_NeoPixel::Color(255,55,0), // O
+            Adafruit_NeoPixel::Color(0,255,0) // G
+          }, 0, PIXEL_COUNT, 6000, 10)
+      , .9));
+  }
+  else if ( mode == "RainbowMarquee_Reverse" )
+  {
+    return std::shared_ptr<Animation>(
+      new Decay(
+        new XmasLights(
+          {
+            Adafruit_NeoPixel::Color(255,0,0), // R
+            Adafruit_NeoPixel::Color(0,0,255), // B
+            Adafruit_NeoPixel::Color(255,128,0), // Y
+            Adafruit_NeoPixel::Color(178,0,255), // V
+            Adafruit_NeoPixel::Color(255,55,0), // O
+            Adafruit_NeoPixel::Color(0,255,0) // G
+          }, 0, PIXEL_COUNT, -6000, 10)
+      , .9));
+  }
+  else if ( mode == "RedGreenSparkle" )
+  {
+    return std::shared_ptr<Animation>(new Sparkle({Adafruit_NeoPixel::Color(255,0,0), Adafruit_NeoPixel::Color(0,255,0)}, 10, .5, 1000, 0, PIXEL_COUNT, false));
+  }
+  else if ( mode == "RedGreenMarquee" )
+  {
+    return std::shared_ptr<Animation>(
+        new XmasLights(
+          {
+            Adafruit_NeoPixel::Color(255,0,0), // R
+            Adafruit_NeoPixel::Color(0,255,0) // G
+          }, 0, PIXEL_COUNT, 1000, 5)
+        );
+  }
+  else if ( mode == "RedGreenMarquee_Reverse" )
+  {
+    return std::shared_ptr<Animation>(
+        new XmasLights(
+          {
+            Adafruit_NeoPixel::Color(255,0,0), // R
+            Adafruit_NeoPixel::Color(0,255,0) // G
+          }, 0, PIXEL_COUNT, -1000, 5)
+        );
+  }
+  else
+  {
+    return nullptr;
+  }
+}
+
 int setMode(String mode)
 {
-  std::map<std::string,std::string> keyValues = parseModeString(std::string(mode));
+  debug("New mode string: %s %s %s", mode.c_str(), mode.substring(0, 5).c_str(), mode.substring(5).c_str());
 
-  const std::string MODE_KEY = "mode";
-  const std::string START_KEY = "start";
-  const std::string END_KEY = "end";
-  const std::string DURATION_KEY = "dur";
-  const std::string WIDTH_KEY = "w";
-  const std::string COLOR_KEY = "color";
-  const std::string THRESHOLD_KEY = "thr";
-  const std::string PERCENT_KEY = "percent";
-  const std::string RESPECT_LIGHT_LEVEL_KEY = "rll";
-
-  debug("New mode string: %s", mode.c_str());
-
-  int start;
-  int end;
-  bool respectLightLevel = true;
-  if ( keyValues.count(RESPECT_LIGHT_LEVEL_KEY) > 0 && keyValues[RESPECT_LIGHT_LEVEL_KEY] == "0")
+  if ((mode.length() <= 5) || (mode.substring(0, 5) != "xmas_"))
   {
-    respectLightLevel = false;
+    return -1;
   }
 
-  if ( validate(keyValues.size() > 0, "No keyvalues")
-    && validate(keyValues.count(MODE_KEY) > 0, "No mode key")
-    && parseInt(keyValues, START_KEY, start)
-    && parseInt(keyValues, END_KEY, end)
-    && validate(start >= 0, "Start is too low")
-    && validate(end < PIXEL_COUNT, "End is too high")
-    && validate(start <= end, "End is less than start"))
+
+  if ((mode.length() > 5) && (mode.substring(0, 5) == "xmas_"))
   {
-    debug("hmmm");
-      auto newMode = keyValues[MODE_KEY];
-      if ( newMode == "rainbow")
-      {
-        int duration;
-        int width;
-        if ( keyValues.count(DURATION_KEY) > 0
-          && keyValues.count(WIDTH_KEY) > 0
-          && stringToInt(keyValues[DURATION_KEY].c_str(), duration)
-          && stringToInt(keyValues[WIDTH_KEY].c_str(), width))
-        {
-          animations.push_back(std::shared_ptr<Animation>(new Rainbow(frame, start, end, duration, width, respectLightLevel)));
-          return 0;
-        }
-      }
-      else if ( newMode == "staticcolor")
-      {
-        int color;
-        if ( keyValues.count(COLOR_KEY) > 0
-          && stringToInt(keyValues[COLOR_KEY].c_str(), 16, color))
-        {
-          animations.push_back(std::shared_ptr<Animation>(new StaticColor(color, start, end, respectLightLevel)));
-          return 0;
-        }
-      }
-      else if ( newMode == "sparkle")
-      {
-        int color;
-        int duration;
-        int threshold;
-        if ( keyValues.count(COLOR_KEY) > 0
-          && parseInt(keyValues, DURATION_KEY, duration)
-          && parseInt(keyValues, THRESHOLD_KEY, threshold)
-          && stringToInt(keyValues[COLOR_KEY].c_str(), 16, color))
-        {
-          debug("wha");
-          animations.push_back(std::shared_ptr<Animation>(new Sparkle({color}, threshold, 1, duration, start, end, respectLightLevel)));
-          debug("New Sparkle Added");
-          return 0;
-        }
-      }
+    String newMode = mode.substring(5);
+    manualAnimationStartTime = Time.now();
+
+    manualAnimation = CreateModeAnimation(newMode);
   }
 
-  return -1;
+  return 0;
 }
 
 void setup() {
@@ -423,6 +472,7 @@ void setup() {
   publishModes();
 }
 
+
 void loop() {
 
   nextFrame(Clock::TriggerEveryXMicros(MICROS_PER_FRAME, lastFrameTime));
@@ -446,17 +496,32 @@ void nextFrame(int elapsedFrames)
   ++actualFrameCount;
 
   bool modeChanged = false;
-  for(int i = animations.size() - 1; i >= 0; --i)
-  {
-    animations[i]->Render(frame, pixelBuffer);
 
-    // Remove modes that didnt render anything
-    if ( animations[i]->IsObsolete() )
+  if ( manualAnimation.get() != nullptr && Clock::TriggerInXSeconds(60, manualAnimationStartTime) )
+  {
+    debug("killing manual animation");
+    manualAnimation = nullptr;
+  }
+
+  if ( manualAnimation.get() != nullptr )
+  {
+    manualAnimation->Render(frame, pixelBuffer);
+  }
+  else
+  {
+    for(int i = animations.size() - 1; i >= 0; --i)
     {
-      animations.erase(animations.begin() + i);
-      modeChanged = true;
+      animations[i]->Render(frame, pixelBuffer);
+
+      // Remove modes that didnt render anything
+      if ( animations[i]->IsObsolete() )
+      {
+        animations.erase(animations.begin() + i);
+        modeChanged = true;
+      }
     }
   }
+
   pixelBuffer.Show();
 
   if ( modeChanged )

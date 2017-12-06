@@ -17,7 +17,7 @@ Rotator::Rotator(
   _random{random}
 {
   _currentAnimation = _animations[0].get();
-  _lastRotateTime = Clock::Millis();
+  _lastRotateTime = Clock::Now();
 
   Particle.publish("DEBUG", "Rotator created");
 }
@@ -26,7 +26,7 @@ void Rotator::UpdateFrame(ulong frame)
 {
   Animation::UpdateFrame(frame);
 
-  bool rotate =  Clock::TriggerEveryXMillis(_rotateSeconds*1000, _lastRotateTime) > 0;
+  bool rotate =  Clock::TriggerEveryXSeconds(_rotateSeconds, _lastRotateTime) > 0;
   if ( rotate)
   {
     if ( _random && (_animations.size() > 1))
