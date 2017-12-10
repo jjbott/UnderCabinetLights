@@ -7,7 +7,7 @@ class PixelBuffer;
 class Animation
 {
   public:
-    Animation(int start, int end, bool respectLightLevel);
+    Animation(int start, int end, String friendlyDescription = "");
     bool IsObsolete();
     void Render(ulong frame, PixelBuffer &pb);
     virtual String GetDescription() = 0;
@@ -24,7 +24,8 @@ class Animation
 
     int _start;
     int _end;
-    bool _respectLightLevel;
 
     ulong _currentFrame;
+
+    String _friendlyDescription;
 };

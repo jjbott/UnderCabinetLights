@@ -22,6 +22,8 @@ PRODUCT_VERSION(2);
 #include "Animations/XmasLights.h"
 #include "Animations/Decay.h"
 #include "Animations/Rotator.h"
+#include "Animations/Mirror.h"
+#include "Animations/Reverse.h"
 
 /* ======================= prototypes =============================== */
 
@@ -84,43 +86,6 @@ bool stringToInt(const char* str, int base, int& result)
 bool stringToInt(const char* str, int& result)
 {
   return stringToInt(str, 10, result);
-}
-
-uint32_t hsvToColor(uint16_t h /* 0 - 359 */, uint8_t s /* 0 - 255 */, uint8_t v /* 0 - 255 */)
-{
-    double      hh, p, q, t, ff;
-    long        i;
-
-    if(s <= 0.0) {
-      return Adafruit_NeoPixel::Color(v, v, v);
-    }
-    hh = h;
-    while ( hh < 0 ) { hh += 360; }
-    while ( hh >= 360 ) { hh -= 360; }
-    hh /= 60.0;
-    i = (long)hh;
-    ff = hh - i;
-    double vPercent = v/255.0;
-    double sPercent = s/255.0;
-    p = 255 * vPercent * (1.0 - sPercent);
-    q = 255 * vPercent * (1.0 - (sPercent * ff));
-    t = 255 * vPercent * (1.0 - (sPercent * (1.0 - ff)));
-
-    switch(i) {
-      case 0:
-        return Adafruit_NeoPixel::Color(v, t, p);
-      case 1:
-        return Adafruit_NeoPixel::Color(q, v, p);
-      case 2:
-        return Adafruit_NeoPixel::Color(p, v, t);
-      case 3:
-        return Adafruit_NeoPixel::Color(p, q, v);
-      case 4:
-        return Adafruit_NeoPixel::Color(t, p, v);
-      case 5:
-      default:
-        return Adafruit_NeoPixel::Color(v, p, q);
-    }
 }
 
 void publishModes()
@@ -237,46 +202,39 @@ bool validate(bool test, String message)
   return test;
 }
 
-std::shared_ptr<Animation> CreateModeAnimation(String mode)
+std::shared_ptr<Animation> CreateModeAnimation(String mode, bool reverse, bool mirror)
 {
+  std::shared_ptr<Animation> animation = nullptr;
+
   if ( mode == "WhiteSparkle" )
   {
-    return std::shared_ptr<Animation>(new Sparkle({Adafruit_NeoPixel::Color(255,255,255)}, 10, .5, 1000, 0, PIXEL_COUNT, false));
+    animation =  std::shared_ptr<Animation>(new Sparkle({Adafruit_NeoPixel::Color(255,255,255)}, 10, .5, 1000, 0, PIXEL_COUNT, "White Sparkle"));
   }
   else if ( mode == "WhiteMarquee" )
   {
-    return std::shared_ptr<Animation>(
+    animation = std::shared_ptr<Animation>(
       new Decay(
         new XmasLights(
           {
             Adafruit_NeoPixel::Color(255,255,255)
           }, 0, PIXEL_COUNT, 1000, 10
-      ), .7));
-  }
-  else if ( mode == "WhiteMarquee_Reverse" )
-  {
-    return std::shared_ptr<Animation>(
-      new Decay(
-        new XmasLights(
-          {
-            Adafruit_NeoPixel::Color(255,255,255)
-          }, 0, PIXEL_COUNT, -1000, 10
-      ), .7));
+      ), .9, "White Marquee")
+    );
   }
   else if ( mode == "RainbowSparkle" )
   {
-    return std::shared_ptr<Animation>(new Sparkle({
+    animation = std::shared_ptr<Animation>(new Sparkle({
       Adafruit_NeoPixel::Color(255,0,0), // R
       Adafruit_NeoPixel::Color(0,0,255), // B
       Adafruit_NeoPixel::Color(255,128,0), // Y
       Adafruit_NeoPixel::Color(178,0,255), // V
       Adafruit_NeoPixel::Color(255,55,0), // O
       Adafruit_NeoPixel::Color(0,255,0) // G
-    }, 10, .4, 2000, 0, PIXEL_COUNT, false));
+    }, 10, .4, 2000, 0, PIXEL_COUNT, "Rainbow Sparkle"));
   }
   else if ( mode == "RainbowMarquee" )
   {
-    return std::shared_ptr<Animation>(
+    animation = std::shared_ptr<Animation>(
       new Decay(
         new XmasLights(
           {
@@ -287,69 +245,80 @@ std::shared_ptr<Animation> CreateModeAnimation(String mode)
             Adafruit_NeoPixel::Color(255,55,0), // O
             Adafruit_NeoPixel::Color(0,255,0) // G
           }, 0, PIXEL_COUNT, 6000, 10)
-      , .9));
-  }
-  else if ( mode == "RainbowMarquee_Reverse" )
-  {
-    return std::shared_ptr<Animation>(
-      new Decay(
-        new XmasLights(
-          {
-            Adafruit_NeoPixel::Color(255,0,0), // R
-            Adafruit_NeoPixel::Color(0,0,255), // B
-            Adafruit_NeoPixel::Color(255,128,0), // Y
-            Adafruit_NeoPixel::Color(178,0,255), // V
-            Adafruit_NeoPixel::Color(255,55,0), // O
-            Adafruit_NeoPixel::Color(0,255,0) // G
-          }, 0, PIXEL_COUNT, -6000, 10)
-      , .9));
+      , .9, "Rainbow Marquee")
+    );
   }
   else if ( mode == "RedGreenSparkle" )
   {
-    return std::shared_ptr<Animation>(new Sparkle({Adafruit_NeoPixel::Color(255,0,0), Adafruit_NeoPixel::Color(0,255,0)}, 10, .5, 1000, 0, PIXEL_COUNT, false));
+    animation = std::shared_ptr<Animation>(new Sparkle({Adafruit_NeoPixel::Color(255,0,0), Adafruit_NeoPixel::Color(0,255,0)}, 10, .5, 1000, 0, PIXEL_COUNT, "Red/Green Sparkle"));
   }
   else if ( mode == "RedGreenMarquee" )
   {
-    return std::shared_ptr<Animation>(
+    animation = std::shared_ptr<Animation>(
         new XmasLights(
           {
             Adafruit_NeoPixel::Color(255,0,0), // R
             Adafruit_NeoPixel::Color(0,255,0) // G
-          }, 0, PIXEL_COUNT, 1000, 5)
-        );
-  }
-  else if ( mode == "RedGreenMarquee_Reverse" )
-  {
-    return std::shared_ptr<Animation>(
-        new XmasLights(
-          {
-            Adafruit_NeoPixel::Color(255,0,0), // R
-            Adafruit_NeoPixel::Color(0,255,0) // G
-          }, 0, PIXEL_COUNT, -1000, 5)
+          }, 0, PIXEL_COUNT, 1000, 5, "Red/Green Marquee")
         );
   }
   else
   {
-    return nullptr;
+    animation = std::shared_ptr<Animation>(new Sparkle({Adafruit_NeoPixel::Color(255,0,0)}, 10, .5, 1000, 0, PIXEL_COUNT, "You did it. You hacked some Christmas lights. Santa is sad."));;
   }
+
+  if ( reverse )
+  {
+    animation = std::shared_ptr<Animation>(new Reverse(animation, animation->GetDescription() + " (Reversed)"));
+  }
+
+  if ( mirror )
+  {
+    animation = std::shared_ptr<Animation>(new Mirror(animation, animation->GetDescription() + " (Mirrored)"));
+  }
+
+  return animation;
 }
 
 int setMode(String mode)
 {
-  debug("New mode string: %s %s %s", mode.c_str(), mode.substring(0, 5).c_str(), mode.substring(5).c_str());
+  debug("New mode string: %s %s", mode.c_str(), mode.substring(5).c_str());
 
   if ((mode.length() <= 5) || (mode.substring(0, 5) != "xmas_"))
   {
+    debug("Bad mode string");
     return -1;
   }
-
 
   if ((mode.length() > 5) && (mode.substring(0, 5) == "xmas_"))
   {
     String newMode = mode.substring(5);
     manualAnimationStartTime = Time.now();
 
-    manualAnimation = CreateModeAnimation(newMode);
+    // TODO: Functionify this
+    String delimiter = ",";
+    String str = newMode;
+    std::vector<String> result;
+    int pos = 0;
+    String token;
+    while ((pos = str.indexOf(delimiter)) >= 0)
+    {
+        if ( pos > 0 )
+        {
+          token = str.substring(0, pos);
+          result.push_back(token);
+        }
+        str.remove(0, pos + delimiter.length());
+    }
+    if ( str.length() > 0 )
+    {
+      result.push_back(str);
+    }
+
+    bool reversed = result.size() > 1 && result[1] == "True";
+    bool mirrored = result.size() > 2 && result[2] == "True";
+
+    manualAnimation = CreateModeAnimation(result[0], reversed, mirrored);
   }
 
   return 0;
@@ -400,61 +369,15 @@ void setup() {
   animations.push_back(
     std::shared_ptr<Animation>(
       new Rotator({
-        std::shared_ptr<Animation>(
-          new Decay(
-            new XmasLights(
-              {
-                Adafruit_NeoPixel::Color(255,0,0), // R
-                Adafruit_NeoPixel::Color(0,0,255), // B
-                Adafruit_NeoPixel::Color(255,128,0), // Y
-                Adafruit_NeoPixel::Color(178,0,255), // V
-                Adafruit_NeoPixel::Color(255,55,0), // O
-                Adafruit_NeoPixel::Color(0,255,0) // G
-              }, 0, PIXEL_COUNT, 6000, 10)
-          , .9))
-        ,std::shared_ptr<Animation>(
-            new Decay(
-              new XmasLights(
-                {
-                  Adafruit_NeoPixel::Color(255,0,0), // R
-                  Adafruit_NeoPixel::Color(0,0,255), // B
-                  Adafruit_NeoPixel::Color(255,128,0), // Y
-                  Adafruit_NeoPixel::Color(178,0,255), // V
-                  Adafruit_NeoPixel::Color(255,55,0), // O
-                  Adafruit_NeoPixel::Color(0,255,0) // G
-                }, 0, PIXEL_COUNT, 6000, 10)
-            , .9))
-        ,std::shared_ptr<Animation>(new Sparkle({Adafruit_NeoPixel::Color(255,255,255)}, 10, .5, 1000, 0, PIXEL_COUNT, false))
-        ,std::shared_ptr<Animation>(
-          new Decay(
-            new XmasLights(
-              {
-                Adafruit_NeoPixel::Color(255,255,255)
-              }, 0, PIXEL_COUNT, 1000, 10
-          ), .7))
-          ,std::shared_ptr<Animation>(
-            new Decay(
-              new XmasLights(
-                {
-                  Adafruit_NeoPixel::Color(255,255,255)
-                }, 0, PIXEL_COUNT, -1000, 10
-            ), .7))
-        , std::shared_ptr<Animation>(new Sparkle({Adafruit_NeoPixel::Color(255,0,0), Adafruit_NeoPixel::Color(0,255,0)}, 10, .5, 1000, 0, PIXEL_COUNT, false))
-        , std::shared_ptr<Animation>(new Sparkle({
-          Adafruit_NeoPixel::Color(255,0,0), // R
-          Adafruit_NeoPixel::Color(0,0,255), // B
-          Adafruit_NeoPixel::Color(255,128,0), // Y
-          Adafruit_NeoPixel::Color(178,0,255), // V
-          Adafruit_NeoPixel::Color(255,55,0), // O
-          Adafruit_NeoPixel::Color(0,255,0) // G
-        }, 10, .4, 2000, 0, PIXEL_COUNT, false))
-        ,std::shared_ptr<Animation>(
-            new XmasLights(
-              {
-                Adafruit_NeoPixel::Color(255,0,0), // R
-                Adafruit_NeoPixel::Color(0,255,0) // G
-              }, 0, PIXEL_COUNT, 1000, 5)
-            )
+        CreateModeAnimation("WhiteSparkle", false, false)
+        , CreateModeAnimation("WhiteMarquee", false, false)
+        , CreateModeAnimation("WhiteMarquee", true, false)
+        , CreateModeAnimation("RedGreenSparkle", false, false)
+        , CreateModeAnimation("RedGreenMarquee", false, false)
+        , CreateModeAnimation("RedGreenMarquee", true, false)
+        , CreateModeAnimation("RainbowSparkle", false, false)
+        , CreateModeAnimation("RainbowMarquee", false, false)
+        , CreateModeAnimation("RainbowMarquee", true, false)
       }, 0, PIXEL_COUNT, 30, 1, true)
     ));
 

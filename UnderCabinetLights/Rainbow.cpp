@@ -3,8 +3,8 @@
 #include "Color.h"
 #include "math.h"
 
-Rainbow::Rainbow(uint32_t startingFrame, int start, int end, int cycleDurationMs, int width, bool respectLightLevel)
-  :Animation(start, end, respectLightLevel)
+Rainbow::Rainbow(uint32_t startingFrame, int start, int end, int cycleDurationMs, int width)
+  :Animation(start, end)
 {
   _startingFrame = startingFrame;
   _cycleDurationMs = cycleDurationMs;

@@ -1,7 +1,7 @@
 #include "StaticColor.h"
 
-StaticColor::StaticColor(uint32_t color, int start, int end, bool respectLightLevel)
-  :Animation(start, end, respectLightLevel)
+StaticColor::StaticColor(uint32_t color, int start, int end)
+  :Animation(start, end)
 {
     _color = color;
 }

@@ -8,7 +8,8 @@ class XmasLights : public Animation
       int start,
       int end,
       int speed,
-      int distance);
+      int distance,
+      String friendlyDescription = "");
     virtual uint32_t GenerateColor(int i, const PixelBuffer &pb);
     void UpdateFrame(ulong frame);
     String GetDescription();

@@ -4,8 +4,8 @@
 #include "PixelBuffer.h"
 #include <math.h>
 
-Pluck::Pluck(uint32_t baseColor, int hueVariance, int durationMs, int start, int end, bool respectLightLevel)
-  :Animation(start, end, respectLightLevel)
+Pluck::Pluck(uint32_t baseColor, int hueVariance, int durationMs, int start, int end)
+  :Animation(start, end)
 {
     _baseColor = baseColor;
     _hueVariance = hueVariance;

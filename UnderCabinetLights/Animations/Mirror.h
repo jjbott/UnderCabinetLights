@@ -4,15 +4,14 @@
 #include <vector>
 #include <memory>
 
-class Decay : public Animation
+class Mirror : public Animation
 {
   public:
-    Decay(Animation* animation, double decayFactor, String friendlyDescription = "");
+    Mirror(std::shared_ptr<Animation> animation, String friendlyDescription = "");
     virtual uint32_t GenerateColor(int i, const PixelBuffer &pb);
     virtual void UpdateFrame(ulong frame);
     String GetDescription();
   protected:
     std::shared_ptr<Animation> _animation;
-    double _decayFactor;
-    ulong _lastFrame;
+    std::unique_ptr<uint32_t[]> _mirroredColors;
 };

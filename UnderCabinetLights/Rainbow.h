@@ -3,7 +3,7 @@
 class Rainbow : public Animation
 {
   public:
-    Rainbow(uint32_t startingFrame, int start, int end, int cycleDurationMs, int width, bool respectLightLevel);
+    Rainbow(uint32_t startingFrame, int start, int end, int cycleDurationMs, int width);
     uint32_t GenerateColor(int i, const PixelBuffer &pb);
     String GetDescription();
   private:

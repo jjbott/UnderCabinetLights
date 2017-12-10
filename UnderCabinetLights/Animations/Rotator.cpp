@@ -10,7 +10,7 @@ Rotator::Rotator(
   int rotateSeconds,
   int fadeSeconds,
   bool random)
-  : Animation(start, end, false),
+  : Animation(start, end),
   _animations(std::move(animations)),
   _rotateSeconds{rotateSeconds},
   _fadeSeconds{fadeSeconds},
@@ -43,6 +43,8 @@ void Rotator::UpdateFrame(ulong frame)
       _currentAnimationIndex = (_currentAnimationIndex + 1) % _animations.size();
     }
     _currentAnimation = _animations[_currentAnimationIndex].get();
+
+    Particle.publish("DEBUG", String("Rotated to: ") + _currentAnimation->GetDescription());
   }
 
   _currentAnimation->UpdateFrame(frame);

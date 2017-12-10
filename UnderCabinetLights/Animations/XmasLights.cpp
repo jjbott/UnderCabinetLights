@@ -8,8 +8,9 @@ XmasLights::XmasLights(
   int start,
   int end,
   int speed,
-  int distance) // distance between lights, in pixels)
-  : Animation(start, end, false),
+  int distance, // distance between lights, in pixels)
+  String friendlyDescription)
+  : Animation(start, end, friendlyDescription),
   _colors{std::move(colors)},
   _distance{distance},
   _speed{speed}
@@ -27,23 +28,28 @@ void XmasLights::UpdateFrame(ulong frame)
 uint32_t XmasLights::GenerateColor(int i, const PixelBuffer &pb)
 {
   double fraction = _currentOffset - (int)_currentOffset;
-  i -= (int)_currentOffset;
-  int mod = i%_distance;
-  if (mod==0)
+  int di = i - (int)_currentOffset;
+
+  // Make sure di is position. mod on negative numbers is haunted.
+  di += (_distance * _colors.size());
+
+  int mod = di%_distance;
+  if ( mod == 0)
   {
-    //return _colors[(i/_distance) % _colors.size()];
-    return  Color::Dim(_colors[(i/_distance) % _colors.size()], 1.0 - fraction);
+    return _colors[(di/_distance) % _colors.size()];
+    //return  Color::Dim(_colors[(i/_distance) % _colors.size()], 1.0 - fraction);
   }
   else if (mod == 1)
   {
-    return  Color::Dim(_colors[((i-1)/_distance) % _colors.size()], fraction);
+    return  Color::Dim(_colors[((di-1)/_distance) % _colors.size()], fraction);
   }
-  else return 0;
+
+  return 0;
 }
 
 String XmasLights::GetDescription()
 {
-  char buffer[100];
-  snprintf(buffer, 100, "XmasLights: Color #%06X, Start %d, End %d", _colors[0], (int)_start, (int)_end);
-  return String(buffer);
+  if ( _friendlyDescription != "" ) return _friendlyDescription;
+
+  return String::format("XmasLights: Color #%06X, Start %d, End %d", _colors[0], (int)_start, (int)_end);
 }

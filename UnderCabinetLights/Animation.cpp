@@ -1,11 +1,11 @@
 #include "Animation.h"
 #include "PixelBuffer.h"
 
-Animation::Animation(int start, int end, bool respectLightLevel)
+Animation::Animation(int start, int end, String friendlyDescription)
 {
   _start = start;
   _end = end;
-  _respectLightLevel = respectLightLevel;
+  _friendlyDescription = friendlyDescription;
 }
 
 int Animation::GetStart()
@@ -43,10 +43,12 @@ void Animation::Render(ulong frame, PixelBuffer &pb)
   for(i = _start; i <= _end; ++i)
   {
     // Only render to pixels that someone else didnt get to first
+    // If we have multiple random animations being added,
+    // this is how we know old ones have been completely overwritten
     if ( !pb.IsPixelDirty(i) )
     {
       uint32_t color = GenerateColor(i, pb);
-      
+
       pb.SetColor(i, color);
       lastRenderedIndex = i;
     }

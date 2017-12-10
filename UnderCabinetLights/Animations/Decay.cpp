@@ -1,10 +1,10 @@
 #include "Decay.h"
 #include "Color.h"
 
-Decay::Decay(Animation* animation, double decayFactor)
-: _animation{std::shared_ptr<Animation>(animation)},
-  _decayFactor{decayFactor},
-  Animation(animation->GetStart(), animation->GetEnd(), false)
+Decay::Decay(Animation* animation, double decayFactor, String friendlyDescription)
+: Animation(animation->GetStart(), animation->GetEnd(), friendlyDescription),
+  _animation{std::shared_ptr<Animation>(animation)},
+  _decayFactor{decayFactor}
 {
   if ( _decayFactor < 0) _decayFactor = 0;
   if ( _decayFactor > 1) _decayFactor = 1;
@@ -12,9 +12,9 @@ Decay::Decay(Animation* animation, double decayFactor)
 
 void Decay::UpdateFrame(ulong frame)
 {
+  Animation::UpdateFrame(frame);
   _lastFrame = _currentFrame;
   _animation->UpdateFrame(frame);
-  Animation::UpdateFrame(frame);
 }
 
 uint32_t Decay::GenerateColor(int i, const PixelBuffer &pb)
@@ -24,10 +24,13 @@ uint32_t Decay::GenerateColor(int i, const PixelBuffer &pb)
   {
     return color;
   }
+
   return Color::Dim(pb.GetColor(i), _decayFactor);
 }
 
 String Decay::GetDescription()
 {
+  if ( _friendlyDescription != "" ) return _friendlyDescription;
+
   return String("Decaying: ") + _animation->GetDescription();
 }

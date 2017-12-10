@@ -5,8 +5,8 @@
 
 Sparkle::Sparkle(
     std::vector<uint32_t> colors,
-   int hueVariance, float newSparklePercent, int sparkleDurationMs, int start, int end, bool respectLightLevel)
-  :Animation(start, end, respectLightLevel),
+   int hueVariance, float newSparklePercent, int sparkleDurationMs, int start, int end, String friendlyDescription)
+  :Animation(start, end, friendlyDescription),
   _colors(std::move(colors))
 {
     _hueVariance = hueVariance;
@@ -58,7 +58,7 @@ uint32_t Sparkle::GenerateColor(int i, const PixelBuffer &pb)
 
 String Sparkle::GetDescription()
 {
-  char buffer[100];
-  snprintf(buffer, 100, "Sparkle: Base Color #%06X, Variance %d, Percent %f%%, Duration %dms, Start %d, End %d", _colors[0], (int)_hueVariance, _newSparklePercent, (int)_sparkleDurationMs, (int)_start, (int)_end);
-  return String(buffer);
+  if ( _friendlyDescription != "" ) return _friendlyDescription;
+
+  return String::format("Sparkle: Base Color #%06X, Variance %d, Percent %f%%, Duration %dms, Start %d, End %d", _colors[0], (int)_hueVariance, _newSparklePercent, (int)_sparkleDurationMs, (int)_start, (int)_end);
 }

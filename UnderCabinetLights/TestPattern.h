@@ -3,7 +3,7 @@
 class TestPattern : public Animation
 {
   public:
-    TestPattern(int start, int end, bool respectLightLevel);
+    TestPattern(int start, int end);
     virtual uint32_t GenerateColor(int i, const PixelBuffer &pb);
     String GetDescription();
   private:

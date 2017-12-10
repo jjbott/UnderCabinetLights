@@ -3,8 +3,8 @@
 #include "Color.h"
 #include "PixelBuffer.h"
 
-TestPattern::TestPattern(int start, int end, bool respectLightLevel)
-  :Animation(start, end, respectLightLevel)
+TestPattern::TestPattern(int start, int end)
+  :Animation(start, end)
 {
 }
 

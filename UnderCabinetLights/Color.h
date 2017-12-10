@@ -114,4 +114,20 @@ class Color
       return Adafruit_NeoPixel::Color(r, g, b);
     }
 
+    static uint32_t DimValue(uint32_t rgbColor, uint8_t dimAmount)
+    {
+      if (rgbColor > 0)
+      {
+        int16_t h;
+        uint8_t s;
+        uint8_t v;
+        Color::ColorToHsv(rgbColor, h, s, v); // should do this in constructor
+        int v2 = (int)v - dimAmount;
+        v2 = v2 < 0 ? 0 : v2;
+
+        return Color::HsvToColor(h, s, v2);
+      }
+      return rgbColor;
+    }
+
 };
