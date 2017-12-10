@@ -202,65 +202,53 @@ bool validate(bool test, String message)
   return test;
 }
 
-std::shared_ptr<Animation> CreateModeAnimation(String mode, bool reverse, bool mirror)
+std::shared_ptr<Animation> CreateModeAnimation(String colorSet, String mode, bool reverse, bool mirror)
 {
   std::shared_ptr<Animation> animation = nullptr;
+  std::vector<uint32_t> colors;
 
-  if ( mode == "WhiteSparkle" )
+  String description;
+
+  if ( colorSet == "White" )
   {
-    animation =  std::shared_ptr<Animation>(new Sparkle({Adafruit_NeoPixel::Color(255,255,255)}, 10, .5, 1000, 0, PIXEL_COUNT, "White Sparkle"));
+    description = "White";
+    colors = {
+      Adafruit_NeoPixel::Color(255,255,255)
+    };
   }
-  else if ( mode == "WhiteMarquee" )
+  else if ( colorSet == "RedGreen" )
   {
-    animation = std::shared_ptr<Animation>(
-      new Decay(
-        new XmasLights(
-          {
-            Adafruit_NeoPixel::Color(255,255,255)
-          }, 0, PIXEL_COUNT, 1000, 10
-      ), .9, "White Marquee")
-    );
+    description = "Red/Green";
+    colors = {
+      Adafruit_NeoPixel::Color(255,0,0), // R
+      Adafruit_NeoPixel::Color(0,255,0) // G
+    };
   }
-  else if ( mode == "RainbowSparkle" )
+  // I'm just picking Rainbow if we get garbage. Good enough
+  else // if ( colorSet = "Rainbow" )
   {
-    animation = std::shared_ptr<Animation>(new Sparkle({
+    description == "Rainbow";
+    colors = {
       Adafruit_NeoPixel::Color(255,0,0), // R
       Adafruit_NeoPixel::Color(0,0,255), // B
       Adafruit_NeoPixel::Color(255,128,0), // Y
       Adafruit_NeoPixel::Color(178,0,255), // V
       Adafruit_NeoPixel::Color(255,55,0), // O
       Adafruit_NeoPixel::Color(0,255,0) // G
-    }, 10, .4, 2000, 0, PIXEL_COUNT, "Rainbow Sparkle"));
+    };
   }
-  else if ( mode == "RainbowMarquee" )
+
+  if ( mode == "Sparkle" )
+  {
+    animation =  std::shared_ptr<Animation>(new Sparkle(colors, 10, .5, 1000, 0, PIXEL_COUNT, description + " Sparkle"));
+  }
+  else if ( mode == "Marquee" )
   {
     animation = std::shared_ptr<Animation>(
       new Decay(
-        new XmasLights(
-          {
-            Adafruit_NeoPixel::Color(255,0,0), // R
-            Adafruit_NeoPixel::Color(0,0,255), // B
-            Adafruit_NeoPixel::Color(255,128,0), // Y
-            Adafruit_NeoPixel::Color(178,0,255), // V
-            Adafruit_NeoPixel::Color(255,55,0), // O
-            Adafruit_NeoPixel::Color(0,255,0) // G
-          }, 0, PIXEL_COUNT, 6000, 10)
-      , .9, "Rainbow Marquee")
+        new XmasLights(colors, 0, PIXEL_COUNT, 1000 * colors.size(), 10)
+        , .9, description + " Marquee")
     );
-  }
-  else if ( mode == "RedGreenSparkle" )
-  {
-    animation = std::shared_ptr<Animation>(new Sparkle({Adafruit_NeoPixel::Color(255,0,0), Adafruit_NeoPixel::Color(0,255,0)}, 10, .5, 1000, 0, PIXEL_COUNT, "Red/Green Sparkle"));
-  }
-  else if ( mode == "RedGreenMarquee" )
-  {
-    animation = std::shared_ptr<Animation>(
-        new XmasLights(
-          {
-            Adafruit_NeoPixel::Color(255,0,0), // R
-            Adafruit_NeoPixel::Color(0,255,0) // G
-          }, 0, PIXEL_COUNT, 1000, 5, "Red/Green Marquee")
-        );
   }
   else
   {
@@ -315,10 +303,14 @@ int setMode(String mode)
       result.push_back(str);
     }
 
-    bool reversed = result.size() > 1 && result[1] == "True";
-    bool mirrored = result.size() > 2 && result[2] == "True";
+    if ( result.size() == 4 )
+    {
+      bool reversed = result[2] == "True";
+      bool mirrored = result[3] == "True";
 
-    manualAnimation = CreateModeAnimation(result[0], reversed, mirrored);
+      manualAnimation = CreateModeAnimation(result[0], result[1], reversed, mirrored);
+    }
+    else return -1;
   }
 
   return 0;
@@ -369,15 +361,15 @@ void setup() {
   animations.push_back(
     std::shared_ptr<Animation>(
       new Rotator({
-        CreateModeAnimation("WhiteSparkle", false, false)
-        , CreateModeAnimation("WhiteMarquee", false, false)
-        , CreateModeAnimation("WhiteMarquee", true, false)
-        , CreateModeAnimation("RedGreenSparkle", false, false)
-        , CreateModeAnimation("RedGreenMarquee", false, false)
-        , CreateModeAnimation("RedGreenMarquee", true, false)
-        , CreateModeAnimation("RainbowSparkle", false, false)
-        , CreateModeAnimation("RainbowMarquee", false, false)
-        , CreateModeAnimation("RainbowMarquee", true, false)
+        CreateModeAnimation("White", "Sparkle", false, false)
+        , CreateModeAnimation("White", "Marquee", false, false)
+        , CreateModeAnimation("White", "Marquee", true, false)
+        , CreateModeAnimation("RedGreen", "Sparkle", false, false)
+        , CreateModeAnimation("RedGreen", "Marquee", false, false)
+        , CreateModeAnimation("RedGreen", "Marquee", true, false)
+        , CreateModeAnimation("Rainbow", "Sparkle", false, false)
+        , CreateModeAnimation("Rainbow", "Marquee", false, false)
+        , CreateModeAnimation("Rainbow", "Marquee", true, false)
       }, 0, PIXEL_COUNT, 30, 1, true)
     ));
 
