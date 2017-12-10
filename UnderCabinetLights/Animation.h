@@ -15,7 +15,7 @@ class Animation
     // These are only public so animation wrappers can use them.
     // Maybe come up with a better way to do that
     virtual void UpdateFrame(ulong frame);
-    virtual uint32_t GenerateColor(int i, const PixelBuffer &pb) = 0;
+    virtual uint32_t GenerateColor(int i, std::function<uint32_t(int)> colorLookup ) = 0;
 
     int GetStart();
     int GetEnd();

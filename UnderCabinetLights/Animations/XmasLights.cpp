@@ -25,7 +25,7 @@ void XmasLights::UpdateFrame(ulong frame)
   _currentOffset = fmod((frame - _startingFrame), cycleDurationFrames) * _distance * _colors.size() / cycleDurationFrames;
 }
 
-uint32_t XmasLights::GenerateColor(int i, const PixelBuffer &pb)
+uint32_t XmasLights::GenerateColor(int i, std::function<uint32_t(int)> colorLookup)
 {
   double fraction = _currentOffset - (int)_currentOffset;
   int di = i - (int)_currentOffset;

@@ -39,7 +39,7 @@ void Pluck::UpdateFrame(ulong frame)
   _currentIntensity = 255.0 * pow(2.7182818284, -2.624 * _currentCyclePosition);
 }
 
-uint32_t Pluck::GenerateColor(int i, const PixelBuffer &pb)
+uint32_t Pluck::GenerateColor(int i, std::function<uint32_t(int)> colorLookup)
 {
   if ( _startFrame == 0xFFFFFFFF )
   {

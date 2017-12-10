@@ -50,9 +50,9 @@ void Rotator::UpdateFrame(ulong frame)
   _currentAnimation->UpdateFrame(frame);
 }
 
-uint32_t Rotator::GenerateColor(int i, const PixelBuffer &pb)
+uint32_t Rotator::GenerateColor(int i, std::function<uint32_t(int)> colorLookup)
 {
-  return _currentAnimation->GenerateColor(i, pb);
+  return _currentAnimation->GenerateColor(i, colorLookup);
 }
 
 String Rotator::GetDescription()

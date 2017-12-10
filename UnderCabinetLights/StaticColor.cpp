@@ -6,7 +6,7 @@ StaticColor::StaticColor(uint32_t color, int start, int end)
     _color = color;
 }
 
-uint32_t StaticColor::GenerateColor(int i, const PixelBuffer &pb)
+uint32_t StaticColor::GenerateColor(int i, std::function<uint32_t(int)> colorLookup)
 {
   return _color;
 }

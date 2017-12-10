@@ -21,7 +21,7 @@ Sparkle::Sparkle(
     }
 }
 
-uint32_t Sparkle::GenerateColor(int i, const PixelBuffer &pb)
+uint32_t Sparkle::GenerateColor(int i, std::function<uint32_t(int)> colorLookup)
 {
   if ( (100 * ((double) rand() / (RAND_MAX))) < _newSparklePercent )
   {
@@ -41,7 +41,7 @@ uint32_t Sparkle::GenerateColor(int i, const PixelBuffer &pb)
   }
   else
   {
-    uint32_t color = pb.GetColor(i);
+    uint32_t color = colorLookup(i);
     if (color > 0)
     {
       int16_t h;

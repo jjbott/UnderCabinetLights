@@ -8,7 +8,7 @@ TestPattern::TestPattern(int start, int end)
 {
 }
 
-uint32_t TestPattern::GenerateColor(int i, const PixelBuffer &pb)
+uint32_t TestPattern::GenerateColor(int i, std::function<uint32_t(int)> colorLookup)
 {
   int phase = (_currentFrame / Config::FPS) % 4;
   switch(phase)

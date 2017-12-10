@@ -13,12 +13,14 @@ void Reverse::UpdateFrame(ulong frame)
   _animation->UpdateFrame(frame);
 }
 
-uint32_t Reverse::GenerateColor(int i, const PixelBuffer &pb)
+uint32_t Reverse::GenerateColor(int i, std::function<uint32_t(int)> colorLookup)
 {
   int reversedIndex = _animation->GetEnd() - i + _animation->GetStart();
+  auto reversedColorLookup = [&](int index) { return colorLookup(_animation->GetEnd() - index + _animation->GetStart()); };
+
   //int reversedIndex = i;
 
-  return _animation->GenerateColor(reversedIndex, pb);
+  return _animation->GenerateColor(reversedIndex, reversedColorLookup);
 }
 
 String Reverse::GetDescription()

@@ -17,15 +17,15 @@ void Decay::UpdateFrame(ulong frame)
   _animation->UpdateFrame(frame);
 }
 
-uint32_t Decay::GenerateColor(int i, const PixelBuffer &pb)
+uint32_t Decay::GenerateColor(int i, std::function<uint32_t(int)> colorLookup)
 {
-  uint32_t color = _animation->GenerateColor(i, pb);
+  uint32_t color = _animation->GenerateColor(i, colorLookup);
   if ( color != 0 )
   {
     return color;
   }
 
-  return Color::Dim(pb.GetColor(i), _decayFactor);
+  return Color::Dim(colorLookup(i), _decayFactor);
 }
 
 String Decay::GetDescription()

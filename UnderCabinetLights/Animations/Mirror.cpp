@@ -15,7 +15,7 @@ void Mirror::UpdateFrame(ulong frame)
   std::fill(_mirroredColors.get(), _mirroredColors.get()+(_animation->GetEnd() - _animation->GetStart()), -1);
 }
 
-uint32_t Mirror::GenerateColor(int i, const PixelBuffer &pb)
+uint32_t Mirror::GenerateColor(int i, std::function<uint32_t(int)> colorLookup)
 {
   int mirroredIndex = _animation->GetEnd() - i + _animation->GetStart();
   int cacheIndex = i - _animation->GetStart();
@@ -30,7 +30,7 @@ uint32_t Mirror::GenerateColor(int i, const PixelBuffer &pb)
 
   if ((_mirroredColors)[cacheIndex] == -1)
   {
-    _mirroredColors[cacheIndex] = _animation->GenerateColor(renderIndex, pb);
+    _mirroredColors[cacheIndex] = _animation->GenerateColor(renderIndex, colorLookup);
   }
 
   return _mirroredColors[cacheIndex];

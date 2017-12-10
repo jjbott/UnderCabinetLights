@@ -5,7 +5,7 @@ class Pluck : public Animation
 {
   public:
     Pluck(uint32_t baseColor, int hueVariance, int durationMs, int start, int end);
-    virtual uint32_t GenerateColor(int i, const PixelBuffer &pb);
+    virtual uint32_t GenerateColor(int i, std::function<uint32_t(int)> colorLookup);
     void UpdateFrame(ulong frame);
     String GetDescription();
   private:

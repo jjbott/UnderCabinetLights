@@ -5,7 +5,7 @@ class Sparkle : public Animation
 {
   public:
     Sparkle(std::vector<uint32_t> colors, int hueVariance, float newSparklePercent, int sparkleDurationMs, int start, int end, String friendlyDescription = "");
-    virtual uint32_t GenerateColor(int i, const PixelBuffer &pb);
+    virtual uint32_t GenerateColor(int i, std::function<uint32_t(int)> colorLookup);
     String GetDescription();
   private:
     std::vector<uint32_t> _colors;

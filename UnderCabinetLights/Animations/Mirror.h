@@ -8,7 +8,7 @@ class Mirror : public Animation
 {
   public:
     Mirror(std::shared_ptr<Animation> animation, String friendlyDescription = "");
-    virtual uint32_t GenerateColor(int i, const PixelBuffer &pb);
+    virtual uint32_t GenerateColor(int i, std::function<uint32_t(int)> colorLookup);
     virtual void UpdateFrame(ulong frame);
     String GetDescription();
   protected:

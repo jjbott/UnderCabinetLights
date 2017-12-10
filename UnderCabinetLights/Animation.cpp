@@ -47,7 +47,7 @@ void Animation::Render(ulong frame, PixelBuffer &pb)
     // this is how we know old ones have been completely overwritten
     if ( !pb.IsPixelDirty(i) )
     {
-      uint32_t color = GenerateColor(i, pb);
+      uint32_t color = GenerateColor(i, [&](int index) { return pb.GetColor(index);});
 
       pb.SetColor(i, color);
       lastRenderedIndex = i;
